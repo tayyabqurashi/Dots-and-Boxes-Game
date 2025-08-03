@@ -28,7 +28,7 @@
             padding: 30px;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.18);
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
         }
 
@@ -95,6 +95,8 @@
             padding: 10px 20px;
             border-radius: 25px;
             font-weight: bold;
+            min-width: 120px;
+            text-align: center;
         }
 
         .current-player {
@@ -104,32 +106,36 @@
 
         .game-board {
             display: grid;
-            gap: 5px;
+            gap: 0;
             margin: 20px auto;
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+            padding: 30px;
             border-radius: 15px;
             justify-content: center;
+            grid-template-columns: repeat(7, auto);
+            grid-template-rows: repeat(7, auto);
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: #fff;
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            margin: 2px;
         }
 
         .line {
             background: rgba(255, 255, 255, 0.3);
             cursor: pointer;
             transition: all 0.2s ease;
-            border-radius: 2px;
+            border-radius: 3px;
+            margin: 2px;
         }
 
-        .line:hover {
+        .line:hover:not(.drawn) {
             background: rgba(255, 255, 255, 0.6);
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
         .line.drawn {
@@ -138,40 +144,40 @@
             box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
         }
 
-        .line.drawn:hover {
-            transform: none;
-        }
-
         .horizontal-line {
-            height: 4px;
-            width: 60px;
+            height: 6px;
+            width: 50px;
         }
 
         .vertical-line {
-            width: 4px;
-            height: 60px;
+            width: 6px;
+            height: 50px;
         }
 
         .box {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 8px;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 16px;
+            margin: 2px;
+            border: 2px solid transparent;
         }
 
         .box.player1 {
             background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
             box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+            color: white;
         }
 
         .box.player2 {
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
             box-shadow: 0 0 15px rgba(78, 205, 196, 0.6);
+            color: white;
         }
 
         .status {
@@ -195,6 +201,7 @@
             margin: 10px 0;
             word-break: break-all;
             font-family: monospace;
+            font-size: 14px;
         }
 
         .connection-status {
@@ -234,6 +241,17 @@
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+            font-family: monospace;
         }
 
         @media (max-width: 768px) {
@@ -248,17 +266,21 @@
             }
             
             .horizontal-line {
-                width: 40px;
+                width: 35px;
             }
             
             .vertical-line {
-                height: 40px;
+                height: 35px;
             }
             
             .box {
-                width: 40px;
-                height: 40px;
-                font-size: 14px;
+                width: 35px;
+                height: 35px;
+                font-size: 12px;
+            }
+            
+            .game-board {
+                padding: 15px;
             }
         }
     </style>
@@ -279,8 +301,9 @@
                 <button onclick="copyInviteLink()">📋 Copy Link</button>
                 <div class="status">
                     <span class="connection-status disconnected"></span>
-                    Waiting for player 2...
+                    <span id="waitingStatus">Waiting for player 2...</span>
                 </div>
+                <div id="debugInfo" class="debug-info" style="display: none;"></div>
             </div>
         </div>
 
@@ -302,6 +325,7 @@
             
             <div style="text-align: center; margin-top: 20px;">
                 <button onclick="backToMenu()">🏠 Back to Menu</button>
+                <button onclick="toggleDebug()" style="margin-left: 10px;">🔍 Debug</button>
             </div>
         </div>
     </div>
@@ -323,20 +347,20 @@
                 this.gameId = null;
                 this.playerId = this.generateId();
                 this.playerNumber = null;
-                this.peer = null;
-                this.connection = null;
                 this.gameState = this.initializeGameState();
-                this.setupPeerConnection();
+                this.lastMessageTime = 0;
+                this.debugMode = false;
+                this.setupConnection();
             }
 
             generateId() {
                 return Math.random().toString(36).substr(2, 9);
             }
 
-            setupPeerConnection() {
-                // Use a simple shared storage simulation
+            setupConnection() {
                 this.checkForMessages();
-                this.messageInterval = setInterval(() => this.checkForMessages(), 2000);
+                this.messageInterval = setInterval(() => this.checkForMessages(), 1500);
+                this.syncInterval = setInterval(() => this.syncGameState(), 3000);
             }
 
             initializeGameState() {
@@ -346,8 +370,20 @@
                     boxes: Array(this.gridSize - 1).fill().map(() => Array(this.gridSize - 1).fill(0)),
                     scores: [0, 0],
                     currentPlayer: 1,
-                    gameOver: false
+                    gameOver: false,
+                    lastMove: null
                 };
+            }
+
+            debug(message) {
+                if (this.debugMode) {
+                    console.log(`[${this.playerNumber ? 'P' + this.playerNumber : 'Unknown'}] ${message}`);
+                    const debugElement = document.getElementById('debugInfo');
+                    if (debugElement) {
+                        debugElement.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+                        debugElement.scrollTop = debugElement.scrollHeight;
+                    }
+                }
             }
 
             createGame() {
@@ -356,115 +392,101 @@
                 this.isMyTurn = true;
                 this.gameId = this.generateId();
                 
-                // Store game data in a way that can be shared
                 const gameData = {
                     host: this.playerId,
                     gameState: this.gameState,
                     players: [this.playerId],
-                    created: Date.now()
+                    created: Date.now(),
+                    status: 'waiting'
                 };
                 
-                // Use multiple storage methods for better compatibility
                 this.storeGameData(gameData);
                 this.showInviteLink();
-                this.createGameBoard();
+                this.debug(`Game created with ID: ${this.gameId}`);
                 
-                // Start checking for player 2 more frequently
-                this.playerCheckInterval = setInterval(() => {
-                    this.checkForPlayerJoin();
+                // Start checking for player 2
+                this.startWaitingForPlayer();
+            }
+
+            startWaitingForPlayer() {
+                this.waitingInterval = setInterval(() => {
+                    const gameData = this.getGameData(this.gameId);
+                    if (gameData && gameData.players.length >= 2) {
+                        this.debug('Player 2 detected, starting game...');
+                        clearInterval(this.waitingInterval);
+                        
+                        // Update status elements
+                        document.querySelector('.connection-status').className = 'connection-status connected';
+                        document.getElementById('waitingStatus').textContent = 'Player 2 connected! Starting game...';
+                        
+                        // Start the game after a short delay
+                        setTimeout(() => {
+                            this.startGame();
+                            // Notify player 2 that game is starting
+                            this.sendMessage({
+                                type: 'gameStarted',
+                                gameState: this.gameState,
+                                hostReady: true
+                            });
+                        }, 2000);
+                    }
                 }, 1000);
             }
 
-            storeGameData(gameData) {
-                // Store in localStorage
-                localStorage.setItem(`game_${this.gameId}`, JSON.stringify(gameData));
-                
-                // Also store in sessionStorage as backup
-                sessionStorage.setItem(`game_${this.gameId}`, JSON.stringify(gameData));
-                
-                // Store in URL hash for sharing (limited data)
-                const urlData = {
-                    id: this.gameId,
-                    host: this.playerId,
-                    created: gameData.created
-                };
-                window.location.hash = btoa(JSON.stringify(urlData));
-            }
-
-            getGameData(gameId) {
-                // Try localStorage first
-                let gameData = localStorage.getItem(`game_${gameId}`);
-                if (gameData) {
-                    return JSON.parse(gameData);
-                }
-                
-                // Try sessionStorage
-                gameData = sessionStorage.getItem(`game_${gameId}`);
-                if (gameData) {
-                    return JSON.parse(gameData);
-                }
-                
-                // Try to get from URL hash if available
-                try {
-                    if (window.location.hash) {
-                        const urlData = JSON.parse(atob(window.location.hash.substr(1)));
-                        if (urlData.id === gameId) {
-                            // Create a basic game structure for joining
-                            return {
-                                host: urlData.host,
-                                gameState: this.initializeGameState(),
-                                players: [urlData.host],
-                                created: urlData.created
-                            };
-                        }
-                    }
-                } catch (e) {
-                    console.log('Could not parse URL hash');
-                }
-                
-                return null;
-            }
             joinGame(gameId) {
                 this.gameId = gameId;
                 this.playerNumber = 2;
                 this.isMyTurn = false;
                 
+                this.debug(`Attempting to join game: ${gameId}`);
+                
                 let gameData = this.getGameData(gameId);
                 
                 if (!gameData) {
-                    // Try to create a new game session for this ID
                     gameData = {
-                        host: 'unknown',
+                        host: 'waiting',
                         gameState: this.initializeGameState(),
-                        players: ['unknown'],
-                        created: Date.now()
+                        players: ['waiting'],
+                        created: Date.now(),
+                        status: 'waiting'
                     };
-                    this.storeGameData(gameData);
                 }
 
-                // Add this player if not already in the game
+                // Add this player
                 if (!gameData.players.includes(this.playerId)) {
-                    gameData.players.push(this.playerId);
+                    gameData.players = [gameData.players[0], this.playerId];
+                    gameData.status = 'ready';
                     this.storeGameData(gameData);
+                    this.debug('Added to game, notifying host...');
                 }
                 
                 this.gameState = gameData.gameState;
                 
-                // Notify host that player joined
+                // Notify host
                 this.sendMessage({
                     type: 'playerJoined',
-                    playerId: this.playerId
+                    playerId: this.playerId,
+                    timestamp: Date.now()
                 });
 
-                // Start the game immediately for player 2
-                setTimeout(() => {
-                    this.startGame();
-                    // Send a connection test to make sure host knows we're ready
-                    this.sendMessage({
-                        type: 'connectionTest',
-                        playerId: this.playerId
-                    });
-                }, 500);
+                // Start game immediately for player 2
+                this.debug('Starting game for player 2...');
+                this.startGame();
+            }
+
+            storeGameData(gameData) {
+                const dataString = JSON.stringify(gameData);
+                localStorage.setItem(`game_${this.gameId}`, dataString);
+                sessionStorage.setItem(`game_${this.gameId}`, dataString);
+                this.debug(`Game data stored for ID: ${this.gameId}`);
+            }
+
+            getGameData(gameId) {
+                let data = localStorage.getItem(`game_${gameId}`);
+                if (!data) {
+                    data = sessionStorage.getItem(`game_${gameId}`);
+                }
+                return data ? JSON.parse(data) : null;
             }
 
             sendMessage(message) {
@@ -473,62 +495,39 @@
                 const messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
                 const newMessage = {
                     from: this.playerId,
-                    to: this.playerNumber === 1 ? 'player2' : 'player1',
+                    fromPlayer: this.playerNumber,
+                    to: this.playerNumber === 1 ? 2 : 1,
                     message: message,
                     timestamp: Date.now()
                 };
                 
                 messages.push(newMessage);
                 
-                // Keep only last 50 messages to prevent storage overflow
-                if (messages.length > 50) {
-                    messages.splice(0, messages.length - 50);
+                if (messages.length > 100) {
+                    messages.splice(0, messages.length - 100);
                 }
                 
                 localStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
-                
-                // Also store in sessionStorage for backup
                 sessionStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
-            }
-
-            checkForPlayerJoin() {
-                if (!this.isHost || !this.gameId) return;
                 
-                const gameData = this.getGameData(this.gameId);
-                if (gameData && gameData.players.length >= 2) {
-                    // Player 2 has joined, start the game
-                    clearInterval(this.playerCheckInterval);
-                    
-                    document.querySelector('.connection-status').className = 'connection-status connected';
-                    document.querySelector('#inviteSection .status').innerHTML = 
-                        '<span class="connection-status connected"></span>Both players connected! Starting game...';
-                    
-                    setTimeout(() => {
-                        this.startGame();
-                        // Send game start notification
-                        this.sendMessage({
-                            type: 'gameStarting',
-                            gameState: this.gameState
-                        });
-                    }, 1000);
-                }
+                this.debug(`Message sent: ${message.type}`);
             }
 
             checkForMessages() {
                 if (!this.gameId) return;
                 
-                // Try localStorage first, then sessionStorage
                 let messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
                 if (messages.length === 0) {
                     messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
                 }
                 
                 const newMessages = messages.filter(msg => 
-                    msg.to === `player${this.playerNumber}` && 
-                    msg.timestamp > (this.lastMessageTime || 0)
+                    msg.to === this.playerNumber && 
+                    msg.timestamp > this.lastMessageTime
                 );
 
                 newMessages.forEach(msg => {
+                    this.debug(`Received message: ${msg.message.type} from Player ${msg.fromPlayer}`);
                     this.handleMessage(msg.message);
                     this.lastMessageTime = msg.timestamp;
                 });
@@ -537,114 +536,58 @@
             handleMessage(message) {
                 switch(message.type) {
                     case 'playerJoined':
-                        this.onPlayerJoined();
+                        this.debug('Player joined message received');
                         break;
-                    case 'gameStarting':
-                        // Player 2 receives confirmation that game is starting
+                    case 'gameStarted':
+                        this.debug('Game started message received');
                         if (!this.isHost) {
                             this.gameState = message.gameState;
-                            this.startGame();
+                            this.updateDisplay();
                         }
                         break;
                     case 'move':
+                        this.debug(`Move received: ${message.move.type} at ${message.move.row},${message.move.col}`);
                         this.handleOpponentMove(message.move);
                         break;
                     case 'gameState':
+                        this.debug('Game state sync received');
                         this.gameState = message.gameState;
                         this.updateDisplay();
                         break;
-                    case 'connectionTest':
-                        // Respond to connection test
-                        this.sendMessage({
-                            type: 'connectionResponse',
-                            playerId: this.playerId
-                        });
-                        break;
-                    case 'connectionResponse':
-                        // Mark connection as active
-                        this.connectionActive = true;
-                        break;
-                }
-            }
-
-            onPlayerJoined() {
-                if (this.isHost) {
-                    document.querySelector('.connection-status').className = 'connection-status connected';
-                    document.querySelector('#inviteSection .status').innerHTML = 
-                        '<span class="connection-status connected"></span>Player 2 joined! Starting game...';
-                    
-                    // Send confirmation to player 2 that game is starting
-                    this.sendMessage({
-                        type: 'gameStarting',
-                        gameState: this.gameState
-                    });
-                    
-                    setTimeout(() => this.startGame(), 1000);
                 }
             }
 
             startGame() {
-                // Clear any intervals
-                if (this.playerCheckInterval) {
-                    clearInterval(this.playerCheckInterval);
+                this.debug('Starting game...');
+                
+                // Clear waiting interval
+                if (this.waitingInterval) {
+                    clearInterval(this.waitingInterval);
                 }
                 
                 document.getElementById('menuScreen').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'block';
+                
                 this.createGameBoard();
                 this.updateDisplay();
                 
-                // Show connection status
-                this.updateConnectionStatus();
-                
-                // Send initial sync message to ensure both players are on same page
-                this.sendMessage({
-                    type: 'gameState',
-                    gameState: this.gameState
-                });
-            }
-
-            showInviteLink() {
-                const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${this.gameId}`;
-                document.getElementById('inviteLink').textContent = inviteUrl;
-                document.getElementById('inviteSection').style.display = 'block';
-                
-                // Update the browser URL to include game data
-                const urlData = {
-                    id: this.gameId,
-                    host: this.playerId,
-                    created: Date.now()
-                };
-                window.history.replaceState({}, '', `${window.location.pathname}?join=${this.gameId}#${btoa(JSON.stringify(urlData))}`);
+                this.debug('Game board created and display updated');
             }
 
             createGameBoard() {
                 const board = document.getElementById('gameBoard');
                 board.innerHTML = '';
                 
-                // Calculate grid template
-                const gridTemplate = [];
-                for (let i = 0; i < this.gridSize; i++) {
-                    gridTemplate.push('8px');
-                    if (i < this.gridSize - 1) {
-                        gridTemplate.push('60px');
-                        gridTemplate.push('8px');
-                    }
-                }
-                
-                board.style.gridTemplateColumns = gridTemplate.join(' ');
-                board.style.gridTemplateRows = gridTemplate.join(' ');
-
-                // Create dots, lines, and boxes
-                for (let row = 0; row < this.gridSize * 2 - 1; row++) {
-                    for (let col = 0; col < this.gridSize * 2 - 1; col++) {
+                // Create a 7x7 grid (4x4 dots with lines and boxes between)
+                for (let row = 0; row < 7; row++) {
+                    for (let col = 0; col < 7; col++) {
                         if (row % 2 === 0 && col % 2 === 0) {
-                            // Dot
+                            // Dot position
                             const dot = document.createElement('div');
                             dot.className = 'dot';
                             board.appendChild(dot);
                         } else if (row % 2 === 0 && col % 2 === 1) {
-                            // Horizontal line
+                            // Horizontal line position
                             const line = document.createElement('div');
                             line.className = 'line horizontal-line';
                             const lineRow = Math.floor(row / 2);
@@ -655,7 +598,7 @@
                             line.dataset.col = lineCol;
                             board.appendChild(line);
                         } else if (row % 2 === 1 && col % 2 === 0) {
-                            // Vertical line
+                            // Vertical line position
                             const line = document.createElement('div');
                             line.className = 'line vertical-line';
                             const lineRow = Math.floor(row / 2);
@@ -666,7 +609,7 @@
                             line.dataset.col = lineCol;
                             board.appendChild(line);
                         } else {
-                            // Box
+                            // Box position
                             const box = document.createElement('div');
                             box.className = 'box';
                             const boxRow = Math.floor(row / 2);
@@ -678,17 +621,26 @@
                     }
                 }
                 
-                this.updateDisplay();
+                this.debug('Game board created with proper grid structure');
             }
 
             makeMove(type, row, col) {
-                if (!this.isMyTurn || this.gameState.gameOver) return;
+                if (!this.isMyTurn || this.gameState.gameOver) {
+                    this.debug(`Move rejected: isMyTurn=${this.isMyTurn}, gameOver=${this.gameState.gameOver}`);
+                    return;
+                }
 
                 const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
                 
-                if (lines[row][col]) return; // Line already drawn
+                if (lines[row][col]) {
+                    this.debug(`Move rejected: line already drawn at ${row},${col}`);
+                    return;
+                }
+
+                this.debug(`Making move: ${type} at ${row},${col}`);
 
                 lines[row][col] = true;
+                this.gameState.lastMove = { type, row, col, player: this.playerNumber };
                 
                 const completedBoxes = this.checkForCompletedBoxes(type, row, col);
                 let scoredPoints = false;
@@ -697,24 +649,37 @@
                     this.gameState.boxes[boxRow][boxCol] = this.gameState.currentPlayer;
                     this.gameState.scores[this.gameState.currentPlayer - 1]++;
                     scoredPoints = true;
+                    this.debug(`Box completed at ${boxRow},${boxCol} for player ${this.gameState.currentPlayer}`);
                 });
 
-                // If no points scored, switch players
+                // Switch players only if no points were scored
                 if (!scoredPoints) {
                     this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
                     this.isMyTurn = !this.isMyTurn;
+                    this.debug(`Turn switched to player ${this.gameState.currentPlayer}`);
+                } else {
+                    this.debug(`Player ${this.gameState.currentPlayer} gets another turn (scored ${completedBoxes.length} points)`);
                 }
 
                 this.sendMove(type, row, col);
                 this.updateDisplay();
                 this.checkGameOver();
+                this.syncGameState();
             }
 
             handleOpponentMove(move) {
                 const { type, row, col } = move;
+                this.debug(`Processing opponent move: ${type} at ${row},${col}`);
+                
                 const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
                 
+                if (lines[row][col]) {
+                    this.debug('Opponent move already processed, skipping');
+                    return;
+                }
+                
                 lines[row][col] = true;
+                this.gameState.lastMove = { type, row, col, player: this.playerNumber === 1 ? 2 : 1 };
                 
                 const completedBoxes = this.checkForCompletedBoxes(type, row, col);
                 let scoredPoints = false;
@@ -746,31 +711,35 @@
                     gameData.gameState = this.gameState;
                     this.storeGameData(gameData);
                 }
-                
-                this.sendMessage({
-                    type: 'gameState',
-                    gameState: this.gameState
-                });
+            }
+
+            syncGameState() {
+                if (this.gameId) {
+                    this.sendMessage({
+                        type: 'gameState',
+                        gameState: this.gameState
+                    });
+                }
             }
 
             checkForCompletedBoxes(lineType, row, col) {
                 const completed = [];
                 
                 if (lineType === 'horizontal') {
-                    // Check box above
+                    // Check box above (if exists)
                     if (row > 0 && this.isBoxComplete(row - 1, col)) {
                         completed.push([row - 1, col]);
                     }
-                    // Check box below
+                    // Check box below (if exists)
                     if (row < this.gridSize - 1 && this.isBoxComplete(row, col)) {
                         completed.push([row, col]);
                     }
                 } else { // vertical
-                    // Check box left
+                    // Check box to the left (if exists)
                     if (col > 0 && this.isBoxComplete(row, col - 1)) {
                         completed.push([row, col - 1]);
                     }
-                    // Check box right
+                    // Check box to the right (if exists)
                     if (col < this.gridSize - 1 && this.isBoxComplete(row, col)) {
                         completed.push([row, col]);
                     }
@@ -780,17 +749,14 @@
             }
 
             isBoxComplete(row, col) {
+                if (row < 0 || row >= this.gridSize - 1 || col < 0 || col >= this.gridSize - 1) {
+                    return false;
+                }
+                
                 return this.gameState.horizontalLines[row][col] && 
                        this.gameState.horizontalLines[row + 1][col] &&
                        this.gameState.verticalLines[row][col] && 
                        this.gameState.verticalLines[row][col + 1];
-            }
-
-            updateConnectionStatus() {
-                const statusElement = document.getElementById('connectionStatus');
-                if (statusElement) {
-                    statusElement.className = 'connection-status connected';
-                }
             }
 
             updateDisplay() {
@@ -815,7 +781,7 @@
                     status.textContent = 'Opponent\'s turn';
                 }
                 
-                // Update board
+                // Update board visual
                 this.updateBoard();
             }
 
@@ -824,8 +790,10 @@
                 document.querySelectorAll('.horizontal-line').forEach(line => {
                     const row = parseInt(line.dataset.row);
                     const col = parseInt(line.dataset.col);
-                    if (this.gameState.horizontalLines[row][col]) {
+                    if (this.gameState.horizontalLines[row] && this.gameState.horizontalLines[row][col]) {
                         line.classList.add('drawn');
+                    } else {
+                        line.classList.remove('drawn');
                     }
                 });
                 
@@ -833,8 +801,10 @@
                 document.querySelectorAll('.vertical-line').forEach(line => {
                     const row = parseInt(line.dataset.row);
                     const col = parseInt(line.dataset.col);
-                    if (this.gameState.verticalLines[row][col]) {
+                    if (this.gameState.verticalLines[row] && this.gameState.verticalLines[row][col]) {
                         line.classList.add('drawn');
+                    } else {
+                        line.classList.remove('drawn');
                     }
                 });
                 
@@ -842,13 +812,17 @@
                 document.querySelectorAll('.box').forEach(box => {
                     const row = parseInt(box.dataset.row);
                     const col = parseInt(box.dataset.col);
-                    const owner = this.gameState.boxes[row][col];
+                    const owner = this.gameState.boxes[row] ? this.gameState.boxes[row][col] : 0;
+                    
+                    box.classList.remove('player1', 'player2');
+                    box.textContent = '';
+                    
                     if (owner === 1) {
                         box.classList.add('player1');
-                        box.textContent = '1';
+                        box.textContent = 'P1';
                     } else if (owner === 2) {
                         box.classList.add('player2');
-                        box.textContent = '2';
+                        box.textContent = 'P2';
                     }
                 });
             }
@@ -859,7 +833,8 @@
                 
                 if (completedBoxes === totalBoxes) {
                     this.gameState.gameOver = true;
-                    this.showGameOverModal();
+                    this.debug('Game over detected');
+                    setTimeout(() => this.showGameOverModal(), 500);
                 }
             }
 
@@ -893,6 +868,20 @@
                 
                 modal.style.display = 'flex';
             }
+
+            showInviteLink() {
+                const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${this.gameId}`;
+                document.getElementById('inviteLink').textContent = inviteUrl;
+                document.getElementById('inviteSection').style.display = 'block';
+                
+                // Update browser URL to include game info
+                const urlData = {
+                    id: this.gameId,
+                    host: this.playerId,
+                    created: Date.now()
+                };
+                window.history.replaceState({}, '', `${window.location.pathname}?join=${this.gameId}#${btoa(JSON.stringify(urlData))}`);
+            }
         }
 
         // Global game instance
@@ -905,22 +894,48 @@
 
         function joinGamePrompt() {
             const gameId = prompt('Enter game ID:');
-            if (gameId) {
+            if (gameId && gameId.trim()) {
                 game.joinGame(gameId.trim());
             }
         }
 
         function copyInviteLink() {
             const link = document.getElementById('inviteLink').textContent;
-            navigator.clipboard.writeText(link).then(() => {
-                alert('Link copied to clipboard!');
-            });
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link).then(() => {
+                    alert('Link copied to clipboard!');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = link;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('Link copied to clipboard!');
+                });
+            }
+        }
+
+        function toggleDebug() {
+            game.debugMode = !game.debugMode;
+            const debugElement = document.getElementById('debugInfo');
+            if (debugElement) {
+                debugElement.style.display = game.debugMode ? 'block' : 'none';
+                if (game.debugMode) {
+                    debugElement.innerHTML = '<div>Debug mode enabled</div>';
+                }
+            }
         }
 
         function backToMenu() {
-            // Clean up
+            // Clean up all intervals
+            if (game.messageInterval) clearInterval(game.messageInterval);
+            if (game.syncInterval) clearInterval(game.syncInterval);
+            if (game.waitingInterval) clearInterval(game.waitingInterval);
+            
+            // Clean up storage
             if (game.gameId) {
-                // Clear storage but keep some data for reconnection
                 try {
                     localStorage.removeItem(`game_${game.gameId}`);
                     localStorage.removeItem(`messages_${game.gameId}`);
@@ -931,49 +946,52 @@
                 }
             }
             
-            // Clear all intervals
-            if (game.messageInterval) {
-                clearInterval(game.messageInterval);
-            }
-            if (game.playerCheckInterval) {
-                clearInterval(game.playerCheckInterval);
-            }
-            
             // Reset UI
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('menuScreen').style.display = 'block';
             document.getElementById('inviteSection').style.display = 'none';
             document.getElementById('gameOverModal').style.display = 'none';
             
-            // Clear URL hash
+            // Clear URL
             window.history.replaceState({}, '', window.location.pathname);
             
             // Create new game instance
             game = new DotsAndBoxesGame();
         }
 
-        // Check for join parameter in URL
+        // Initialize on page load
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const joinGameId = urlParams.get('join');
+            
             if (joinGameId) {
-                // Add a small delay to ensure everything is initialized
+                console.log('Auto-joining game:', joinGameId);
                 setTimeout(() => {
                     try {
                         game.joinGame(joinGameId);
                     } catch (error) {
-                        console.log('Join game error:', error);
-                        alert('Error joining game. Please try again or ask for a new invite link.');
+                        console.error('Error joining game:', error);
+                        alert('Error joining game. Please try again or request a new invite link.');
                     }
-                }, 500);
+                }, 1000);
             }
         });
 
-        // Handle page visibility changes to maintain connection
+        // Handle page visibility for better connection management
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && game.gameId) {
-                // Resume checking for messages when page becomes visible
                 game.checkForMessages();
+                game.syncGameState();
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinGameId = urlParams.get('join');
+            
+            if (!joinGameId && game.gameId) {
+                backToMenu();
             }
         });
     </script>
