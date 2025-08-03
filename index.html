@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Dots and Boxes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .menu-screen {
+            text-align: center;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            min-width: 200px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+
+        .current-player {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+
+        .game-board {
+            display: grid;
+            gap: 5px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .line {
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 2px;
+        }
+
+        .line:hover {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+
+        .line.drawn {
+            background: #4ecdc4;
+            cursor: default;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
+        }
+
+        .line.drawn:hover {
+            transform: none;
+        }
+
+        .horizontal-line {
+            height: 4px;
+            width: 60px;
+        }
+
+        .vertical-line {
+            width: 4px;
+            height: 60px;
+        }
+
+        .box {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .box.player1 {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+        }
+
+        .box.player2 {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.6);
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .invite-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .invite-link {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .connected {
+            background: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
+        }
+
+        .disconnected {
+            background: #ff6b6b;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 20px;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .horizontal-line {
+                width: 40px;
+            }
+            
+            .vertical-line {
+                height: 40px;
+            }
+            
+            .box {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Dots and Boxes</h1>
+        
+        <div id="menuScreen" class="menu-screen">
+            <div class="menu-buttons">
+                <button onclick="createGame()">🎮 Create New Game</button>
+                <button onclick="joinGamePrompt()">🔗 Join Game</button>
+            </div>
+            
+            <div id="inviteSection" class="invite-section" style="display: none;">
+                <h3>Share this link with your friend:</h3>
+                <div id="inviteLink" class="invite-link"></div>
+                <button onclick="copyInviteLink()">📋 Copy Link</button>
+                <div class="status">
+                    <span class="connection-status disconnected"></span>
+                    Waiting for player 2...
+                </div>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="game-screen">
+            <div class="game-info">
+                <div id="player1Info" class="player-info">
+                    Player 1: <span id="player1Score">0</span>
+                </div>
+                <div class="status">
+                    <span id="connectionStatus" class="connection-status connected"></span>
+                    <span id="gameStatus">Your turn</span>
+                </div>
+                <div id="player2Info" class="player-info">
+                    Player 2: <span id="player2Score">0</span>
+                </div>
+            </div>
+            
+            <div id="gameBoard" class="game-board"></div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="backToMenu()">🏠 Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2 id="gameOverTitle">🎉 Game Over!</h2>
+            <p id="gameOverText"></p>
+            <button onclick="backToMenu()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        class DotsAndBoxesGame {
+            constructor() {
+                this.gridSize = 4;
+                this.isHost = false;
+                this.isMyTurn = false;
+                this.gameId = null;
+                this.playerId = this.generateId();
+                this.playerNumber = null;
+                this.peer = null;
+                this.connection = null;
+                this.gameState = this.initializeGameState();
+                this.setupPeerConnection();
+            }
+
+            generateId() {
+                return Math.random().toString(36).substr(2, 9);
+            }
+
+            setupPeerConnection() {
+                // Simple WebRTC-like simulation using localStorage for demo
+                // In production, you'd use actual WebRTC or WebSocket server
+                this.checkForMessages();
+                setInterval(() => this.checkForMessages(), 1000);
+            }
+
+            initializeGameState() {
+                return {
+                    horizontalLines: Array(this.gridSize).fill().map(() => Array(this.gridSize - 1).fill(false)),
+                    verticalLines: Array(this.gridSize - 1).fill().map(() => Array(this.gridSize).fill(false)),
+                    boxes: Array(this.gridSize - 1).fill().map(() => Array(this.gridSize - 1).fill(0)),
+                    scores: [0, 0],
+                    currentPlayer: 1,
+                    gameOver: false
+                };
+            }
+
+            createGame() {
+                this.isHost = true;
+                this.playerNumber = 1;
+                this.isMyTurn = true;
+                this.gameId = this.generateId();
+                
+                // Store game in localStorage
+                localStorage.setItem(`game_${this.gameId}`, JSON.stringify({
+                    host: this.playerId,
+                    gameState: this.gameState,
+                    players: [this.playerId]
+                }));
+
+                this.showInviteLink();
+                this.createGameBoard();
+            }
+
+            joinGame(gameId) {
+                this.gameId = gameId;
+                this.playerNumber = 2;
+                this.isMyTurn = false;
+                
+                const gameData = localStorage.getItem(`game_${gameId}`);
+                if (!gameData) {
+                    alert('Game not found!');
+                    return;
+                }
+
+                const game = JSON.parse(gameData);
+                if (game.players.length >= 2) {
+                    alert('Game is full!');
+                    return;
+                }
+
+                game.players.push(this.playerId);
+                localStorage.setItem(`game_${gameId}`, JSON.stringify(game));
+                
+                // Notify host that player joined
+                this.sendMessage({
+                    type: 'playerJoined',
+                    playerId: this.playerId
+                });
+
+                this.gameState = game.gameState;
+                this.startGame();
+            }
+
+            sendMessage(message) {
+                const messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
+                messages.push({
+                    from: this.playerId,
+                    to: this.playerNumber === 1 ? 'player2' : 'player1',
+                    message: message,
+                    timestamp: Date.now()
+                });
+                localStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
+            }
+
+            checkForMessages() {
+                if (!this.gameId) return;
+                
+                const messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
+                const newMessages = messages.filter(msg => 
+                    msg.to === `player${this.playerNumber}` && 
+                    msg.timestamp > (this.lastMessageTime || 0)
+                );
+
+                newMessages.forEach(msg => {
+                    this.handleMessage(msg.message);
+                    this.lastMessageTime = msg.timestamp;
+                });
+            }
+
+            handleMessage(message) {
+                switch(message.type) {
+                    case 'playerJoined':
+                        this.onPlayerJoined();
+                        break;
+                    case 'move':
+                        this.handleOpponentMove(message.move);
+                        break;
+                    case 'gameState':
+                        this.gameState = message.gameState;
+                        this.updateDisplay();
+                        break;
+                }
+            }
+
+            onPlayerJoined() {
+                if (this.isHost) {
+                    document.querySelector('.connection-status').className = 'connection-status connected';
+                    document.querySelector('#inviteSection .status').innerHTML = 
+                        '<span class="connection-status connected"></span>Player 2 joined! Starting game...';
+                    
+                    setTimeout(() => this.startGame(), 1000);
+                }
+            }
+
+            startGame() {
+                document.getElementById('menuScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'block';
+                this.createGameBoard();
+                this.updateDisplay();
+            }
+
+            showInviteLink() {
+                const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${this.gameId}`;
+                document.getElementById('inviteLink').textContent = inviteUrl;
+                document.getElementById('inviteSection').style.display = 'block';
+            }
+
+            createGameBoard() {
+                const board = document.getElementById('gameBoard');
+                board.innerHTML = '';
+                
+                // Calculate grid template
+                const gridTemplate = [];
+                for (let i = 0; i < this.gridSize; i++) {
+                    gridTemplate.push('8px');
+                    if (i < this.gridSize - 1) {
+                        gridTemplate.push('60px');
+                        gridTemplate.push('8px');
+                    }
+                }
+                
+                board.style.gridTemplateColumns = gridTemplate.join(' ');
+                board.style.gridTemplateRows = gridTemplate.join(' ');
+
+                // Create dots, lines, and boxes
+                for (let row = 0; row < this.gridSize * 2 - 1; row++) {
+                    for (let col = 0; col < this.gridSize * 2 - 1; col++) {
+                        if (row % 2 === 0 && col % 2 === 0) {
+                            // Dot
+                            const dot = document.createElement('div');
+                            dot.className = 'dot';
+                            board.appendChild(dot);
+                        } else if (row % 2 === 0 && col % 2 === 1) {
+                            // Horizontal line
+                            const line = document.createElement('div');
+                            line.className = 'line horizontal-line';
+                            const lineRow = Math.floor(row / 2);
+                            const lineCol = Math.floor(col / 2);
+                            line.onclick = () => this.makeMove('horizontal', lineRow, lineCol);
+                            line.dataset.type = 'horizontal';
+                            line.dataset.row = lineRow;
+                            line.dataset.col = lineCol;
+                            board.appendChild(line);
+                        } else if (row % 2 === 1 && col % 2 === 0) {
+                            // Vertical line
+                            const line = document.createElement('div');
+                            line.className = 'line vertical-line';
+                            const lineRow = Math.floor(row / 2);
+                            const lineCol = Math.floor(col / 2);
+                            line.onclick = () => this.makeMove('vertical', lineRow, lineCol);
+                            line.dataset.type = 'vertical';
+                            line.dataset.row = lineRow;
+                            line.dataset.col = lineCol;
+                            board.appendChild(line);
+                        } else {
+                            // Box
+                            const box = document.createElement('div');
+                            box.className = 'box';
+                            const boxRow = Math.floor(row / 2);
+                            const boxCol = Math.floor(col / 2);
+                            box.dataset.row = boxRow;
+                            box.dataset.col = boxCol;
+                            board.appendChild(box);
+                        }
+                    }
+                }
+                
+                this.updateDisplay();
+            }
+
+            makeMove(type, row, col) {
+                if (!this.isMyTurn || this.gameState.gameOver) return;
+
+                const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
+                
+                if (lines[row][col]) return; // Line already drawn
+
+                lines[row][col] = true;
+                
+                const completedBoxes = this.checkForCompletedBoxes(type, row, col);
+                let scoredPoints = false;
+                
+                completedBoxes.forEach(([boxRow, boxCol]) => {
+                    this.gameState.boxes[boxRow][boxCol] = this.gameState.currentPlayer;
+                    this.gameState.scores[this.gameState.currentPlayer - 1]++;
+                    scoredPoints = true;
+                });
+
+                // If no points scored, switch players
+                if (!scoredPoints) {
+                    this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
+                    this.isMyTurn = !this.isMyTurn;
+                }
+
+                this.sendMove(type, row, col);
+                this.updateDisplay();
+                this.checkGameOver();
+            }
+
+            handleOpponentMove(move) {
+                const { type, row, col } = move;
+                const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
+                
+                lines[row][col] = true;
+                
+                const completedBoxes = this.checkForCompletedBoxes(type, row, col);
+                let scoredPoints = false;
+                
+                completedBoxes.forEach(([boxRow, boxCol]) => {
+                    this.gameState.boxes[boxRow][boxCol] = this.gameState.currentPlayer;
+                    this.gameState.scores[this.gameState.currentPlayer - 1]++;
+                    scoredPoints = true;
+                });
+
+                if (!scoredPoints) {
+                    this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
+                    this.isMyTurn = !this.isMyTurn;
+                }
+
+                this.updateDisplay();
+                this.checkGameOver();
+            }
+
+            sendMove(type, row, col) {
+                this.sendMessage({
+                    type: 'move',
+                    move: { type, row, col }
+                });
+                
+                this.sendMessage({
+                    type: 'gameState',
+                    gameState: this.gameState
+                });
+            }
+
+            checkForCompletedBoxes(lineType, row, col) {
+                const completed = [];
+                
+                if (lineType === 'horizontal') {
+                    // Check box above
+                    if (row > 0 && this.isBoxComplete(row - 1, col)) {
+                        completed.push([row - 1, col]);
+                    }
+                    // Check box below
+                    if (row < this.gridSize - 1 && this.isBoxComplete(row, col)) {
+                        completed.push([row, col]);
+                    }
+                } else { // vertical
+                    // Check box left
+                    if (col > 0 && this.isBoxComplete(row, col - 1)) {
+                        completed.push([row, col - 1]);
+                    }
+                    // Check box right
+                    if (col < this.gridSize - 1 && this.isBoxComplete(row, col)) {
+                        completed.push([row, col]);
+                    }
+                }
+                
+                return completed;
+            }
+
+            isBoxComplete(row, col) {
+                return this.gameState.horizontalLines[row][col] && 
+                       this.gameState.horizontalLines[row + 1][col] &&
+                       this.gameState.verticalLines[row][col] && 
+                       this.gameState.verticalLines[row][col + 1];
+            }
+
+            updateDisplay() {
+                // Update scores
+                document.getElementById('player1Score').textContent = this.gameState.scores[0];
+                document.getElementById('player2Score').textContent = this.gameState.scores[1];
+                
+                // Update current player indicator
+                const player1Info = document.getElementById('player1Info');
+                const player2Info = document.getElementById('player2Info');
+                
+                player1Info.classList.toggle('current-player', this.gameState.currentPlayer === 1);
+                player2Info.classList.toggle('current-player', this.gameState.currentPlayer === 2);
+                
+                // Update game status
+                const status = document.getElementById('gameStatus');
+                if (this.isMyTurn) {
+                    status.textContent = 'Your turn';
+                } else {
+                    status.textContent = 'Opponent\'s turn';
+                }
+                
+                // Update board
+                this.updateBoard();
+            }
+
+            updateBoard() {
+                // Update horizontal lines
+                document.querySelectorAll('.horizontal-line').forEach(line => {
+                    const row = parseInt(line.dataset.row);
+                    const col = parseInt(line.dataset.col);
+                    if (this.gameState.horizontalLines[row][col]) {
+                        line.classList.add('drawn');
+                    }
+                });
+                
+                // Update vertical lines
+                document.querySelectorAll('.vertical-line').forEach(line => {
+                    const row = parseInt(line.dataset.row);
+                    const col = parseInt(line.dataset.col);
+                    if (this.gameState.verticalLines[row][col]) {
+                        line.classList.add('drawn');
+                    }
+                });
+                
+                // Update boxes
+                document.querySelectorAll('.box').forEach(box => {
+                    const row = parseInt(box.dataset.row);
+                    const col = parseInt(box.dataset.col);
+                    const owner = this.gameState.boxes[row][col];
+                    if (owner === 1) {
+                        box.classList.add('player1');
+                        box.textContent = '1';
+                    } else if (owner === 2) {
+                        box.classList.add('player2');
+                        box.textContent = '2';
+                    }
+                });
+            }
+
+            checkGameOver() {
+                const totalBoxes = (this.gridSize - 1) * (this.gridSize - 1);
+                const completedBoxes = this.gameState.scores[0] + this.gameState.scores[1];
+                
+                if (completedBoxes === totalBoxes) {
+                    this.gameState.gameOver = true;
+                    this.showGameOverModal();
+                }
+            }
+
+            showGameOverModal() {
+                const modal = document.getElementById('gameOverModal');
+                const title = document.getElementById('gameOverTitle');
+                const text = document.getElementById('gameOverText');
+                
+                const [score1, score2] = this.gameState.scores;
+                
+                if (score1 > score2) {
+                    if (this.playerNumber === 1) {
+                        title.textContent = '🎉 You Win!';
+                        text.textContent = `Congratulations! You won ${score1} to ${score2}!`;
+                    } else {
+                        title.textContent = '😔 You Lose!';
+                        text.textContent = `Better luck next time! You lost ${score2} to ${score1}.`;
+                    }
+                } else if (score2 > score1) {
+                    if (this.playerNumber === 2) {
+                        title.textContent = '🎉 You Win!';
+                        text.textContent = `Congratulations! You won ${score2} to ${score1}!`;
+                    } else {
+                        title.textContent = '😔 You Lose!';
+                        text.textContent = `Better luck next time! You lost ${score1} to ${score2}.`;
+                    }
+                } else {
+                    title.textContent = '🤝 It\'s a Tie!';
+                    text.textContent = `Great game! Both players scored ${score1} points.`;
+                }
+                
+                modal.style.display = 'flex';
+            }
+        }
+
+        // Global game instance
+        let game = new DotsAndBoxesGame();
+
+        // Global functions
+        function createGame() {
+            game.createGame();
+        }
+
+        function joinGamePrompt() {
+            const gameId = prompt('Enter game ID:');
+            if (gameId) {
+                game.joinGame(gameId.trim());
+            }
+        }
+
+        function copyInviteLink() {
+            const link = document.getElementById('inviteLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+
+        function backToMenu() {
+            // Clean up
+            if (game.gameId) {
+                localStorage.removeItem(`game_${game.gameId}`);
+                localStorage.removeItem(`messages_${game.gameId}`);
+            }
+            
+            // Reset UI
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('menuScreen').style.display = 'block';
+            document.getElementById('inviteSection').style.display = 'none';
+            document.getElementById('gameOverModal').style.display = 'none';
+            
+            // Create new game instance
+            game = new DotsAndBoxesGame();
+        }
+
+        // Check for join parameter in URL
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinGameId = urlParams.get('join');
+            if (joinGameId) {
+                game.joinGame(joinGameId);
+            }
+        });
+    </script>
+</body>
+</html>
