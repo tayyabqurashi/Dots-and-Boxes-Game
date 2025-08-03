@@ -368,6 +368,11 @@
                 this.storeGameData(gameData);
                 this.showInviteLink();
                 this.createGameBoard();
+                
+                // Start checking for player 2 more frequently
+                this.playerCheckInterval = setInterval(() => {
+                    this.checkForPlayerJoin();
+                }, 1000);
             }
 
             storeGameData(gameData) {
@@ -435,11 +440,6 @@
                         created: Date.now()
                     };
                     this.storeGameData(gameData);
-                    
-                    alert('Game session created! Share this link with the host to connect.');
-                } else if (gameData.players.length >= 2 && !gameData.players.includes(this.playerId)) {
-                    alert('Game is full!');
-                    return;
                 }
 
                 // Add this player if not already in the game
@@ -448,14 +448,23 @@
                     this.storeGameData(gameData);
                 }
                 
-                // Notify other player that someone joined
+                this.gameState = gameData.gameState;
+                
+                // Notify host that player joined
                 this.sendMessage({
                     type: 'playerJoined',
                     playerId: this.playerId
                 });
 
-                this.gameState = gameData.gameState;
-                this.startGame();
+                // Start the game immediately for player 2
+                setTimeout(() => {
+                    this.startGame();
+                    // Send a connection test to make sure host knows we're ready
+                    this.sendMessage({
+                        type: 'connectionTest',
+                        playerId: this.playerId
+                    });
+                }, 500);
             }
 
             sendMessage(message) {
@@ -480,6 +489,29 @@
                 
                 // Also store in sessionStorage for backup
                 sessionStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
+            }
+
+            checkForPlayerJoin() {
+                if (!this.isHost || !this.gameId) return;
+                
+                const gameData = this.getGameData(this.gameId);
+                if (gameData && gameData.players.length >= 2) {
+                    // Player 2 has joined, start the game
+                    clearInterval(this.playerCheckInterval);
+                    
+                    document.querySelector('.connection-status').className = 'connection-status connected';
+                    document.querySelector('#inviteSection .status').innerHTML = 
+                        '<span class="connection-status connected"></span>Both players connected! Starting game...';
+                    
+                    setTimeout(() => {
+                        this.startGame();
+                        // Send game start notification
+                        this.sendMessage({
+                            type: 'gameStarting',
+                            gameState: this.gameState
+                        });
+                    }, 1000);
+                }
             }
 
             checkForMessages() {
@@ -507,12 +539,30 @@
                     case 'playerJoined':
                         this.onPlayerJoined();
                         break;
+                    case 'gameStarting':
+                        // Player 2 receives confirmation that game is starting
+                        if (!this.isHost) {
+                            this.gameState = message.gameState;
+                            this.startGame();
+                        }
+                        break;
                     case 'move':
                         this.handleOpponentMove(message.move);
                         break;
                     case 'gameState':
                         this.gameState = message.gameState;
                         this.updateDisplay();
+                        break;
+                    case 'connectionTest':
+                        // Respond to connection test
+                        this.sendMessage({
+                            type: 'connectionResponse',
+                            playerId: this.playerId
+                        });
+                        break;
+                    case 'connectionResponse':
+                        // Mark connection as active
+                        this.connectionActive = true;
                         break;
                 }
             }
@@ -523,15 +573,35 @@
                     document.querySelector('#inviteSection .status').innerHTML = 
                         '<span class="connection-status connected"></span>Player 2 joined! Starting game...';
                     
+                    // Send confirmation to player 2 that game is starting
+                    this.sendMessage({
+                        type: 'gameStarting',
+                        gameState: this.gameState
+                    });
+                    
                     setTimeout(() => this.startGame(), 1000);
                 }
             }
 
             startGame() {
+                // Clear any intervals
+                if (this.playerCheckInterval) {
+                    clearInterval(this.playerCheckInterval);
+                }
+                
                 document.getElementById('menuScreen').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'block';
                 this.createGameBoard();
                 this.updateDisplay();
+                
+                // Show connection status
+                this.updateConnectionStatus();
+                
+                // Send initial sync message to ensure both players are on same page
+                this.sendMessage({
+                    type: 'gameState',
+                    gameState: this.gameState
+                });
             }
 
             showInviteLink() {
@@ -716,6 +786,13 @@
                        this.gameState.verticalLines[row][col + 1];
             }
 
+            updateConnectionStatus() {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    statusElement.className = 'connection-status connected';
+                }
+            }
+
             updateDisplay() {
                 // Update scores
                 document.getElementById('player1Score').textContent = this.gameState.scores[0];
@@ -730,7 +807,9 @@
                 
                 // Update game status
                 const status = document.getElementById('gameStatus');
-                if (this.isMyTurn) {
+                if (this.gameState.gameOver) {
+                    status.textContent = 'Game Over';
+                } else if (this.isMyTurn) {
                     status.textContent = 'Your turn';
                 } else {
                     status.textContent = 'Opponent\'s turn';
@@ -852,9 +931,12 @@
                 }
             }
             
-            // Clear message interval
+            // Clear all intervals
             if (game.messageInterval) {
                 clearInterval(game.messageInterval);
+            }
+            if (game.playerCheckInterval) {
+                clearInterval(game.playerCheckInterval);
             }
             
             // Reset UI
