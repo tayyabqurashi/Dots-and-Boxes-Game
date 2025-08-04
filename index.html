@@ -341,6 +341,9 @@
     </div>
 
     <script>
+        // WebSocket server configuration
+        const WS_SERVER_URL = "wss://dots-and-boxes-server.glitch.me/";
+        
         class DotsAndBoxesGame {
             constructor() {
                 this.gridSize = 4;
@@ -350,20 +353,15 @@
                 this.playerId = this.generateId();
                 this.playerNumber = null;
                 this.gameState = this.initializeGameState();
-                this.lastMessageTime = 0;
                 this.debugMode = false;
                 this.gameStarted = false;
-                this.setupConnection();
+                this.ws = null;
+                this.connectionAttempts = 0;
+                this.maxConnectionAttempts = 5;
             }
 
             generateId() {
                 return Math.random().toString(36).substr(2, 9);
-            }
-
-            setupConnection() {
-                this.checkForMessages();
-                this.messageInterval = setInterval(() => this.checkForMessages(), 1000);
-                this.syncInterval = setInterval(() => this.syncGameState(), 2000);
             }
 
             initializeGameState() {
@@ -389,204 +387,147 @@
                 }
             }
 
-            createGame() {
-                this.isHost = true;
-                this.playerNumber = 1;
-                this.isMyTurn = true;
-                this.gameId = this.generateId();
+            connectToServer() {
+                if (this.ws) {
+                    this.ws.close();
+                }
                 
-                const gameData = {
-                    host: this.playerId,
-                    gameState: this.gameState,
-                    players: [this.playerId],
-                    created: Date.now(),
-                    status: 'waiting'
+                this.ws = new WebSocket(WS_SERVER_URL);
+                
+                this.ws.onopen = () => {
+                    this.debug("Connected to game server");
+                    this.connectionAttempts = 0;
+                    
+                    // Update connection status
+                    const statusElement = document.querySelector('.connection-status');
+                    if (statusElement) statusElement.className = 'connection-status connected';
+                    
+                    if (this.gameId) {
+                        if (this.isHost) {
+                            this.sendToServer({ type: 'host-connect', gameId: this.gameId, playerId: this.playerId });
+                        } else {
+                            this.sendToServer({ type: 'join', gameId: this.gameId, playerId: this.playerId });
+                        }
+                    }
                 };
                 
-                this.storeGameData(gameData);
-                this.showInviteLink();
-                this.debug(`Game created with ID: ${this.gameId}`);
+                this.ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        this.debug(`Received message: ${message.type}`);
+                        this.handleServerMessage(message);
+                    } catch (e) {
+                        this.debug(`Error parsing message: ${e.message}`);
+                    }
+                };
                 
-                // Start checking for player 2
-                this.startWaitingForPlayer();
+                this.ws.onerror = (error) => {
+                    this.debug(`WebSocket error: ${error.message}`);
+                };
+                
+                this.ws.onclose = (event) => {
+                    this.debug(`Connection closed: ${event.reason || 'Unknown reason'}`);
+                    
+                    // Update connection status
+                    const statusElement = document.querySelector('.connection-status');
+                    if (statusElement) statusElement.className = 'connection-status disconnected';
+                    
+                    // Try to reconnect if not closed intentionally
+                    if (!event.wasClean && this.connectionAttempts < this.maxConnectionAttempts) {
+                        this.connectionAttempts++;
+                        const delay = Math.min(3000, this.connectionAttempts * 1000);
+                        this.debug(`Reconnecting in ${delay}ms... (attempt ${this.connectionAttempts})`);
+                        setTimeout(() => this.connectToServer(), delay);
+                    }
+                };
             }
 
-            startWaitingForPlayer() {
-                this.waitingInterval = setInterval(() => {
-                    const gameData = this.getGameData(this.gameId);
-                    if (gameData && gameData.players.length >= 2 && gameData.status === 'ready') {
-                        this.debug('Player 2 detected, starting game...');
-                        clearInterval(this.waitingInterval);
+            sendToServer(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                    return true;
+                }
+                this.debug("Failed to send message - connection not open");
+                return false;
+            }
+
+            handleServerMessage(message) {
+                switch(message.type) {
+                    case 'game-created':
+                        this.debug(`Game created: ${message.gameId}`);
+                        this.gameId = message.gameId;
+                        this.playerNumber = 1;
+                        this.isHost = true;
+                        this.isMyTurn = true;
+                        this.showInviteLink();
+                        break;
                         
-                        // Update status elements
-                        const statusElement = document.querySelector('.connection-status');
-                        const waitingElement = document.getElementById('waitingStatus');
-                        if (statusElement) statusElement.className = 'connection-status connected';
-                        if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
+                    case 'player-joined':
+                        this.debug(`Player joined: ${message.playerId}`);
+                        if (this.isHost && !this.gameStarted) {
+                            // Update status
+                            const statusElement = document.querySelector('.connection-status');
+                            const waitingElement = document.getElementById('waitingStatus');
+                            if (statusElement) statusElement.className = 'connection-status connected';
+                            if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
+                            
+                            // Start game after delay
+                            setTimeout(() => {
+                                this.startGame();
+                                this.sendToServer({
+                                    type: 'game-state',
+                                    gameId: this.gameId,
+                                    state: this.gameState,
+                                    currentPlayer: this.playerNumber
+                                });
+                            }, 1000);
+                        }
+                        break;
                         
-                        // Start the game for host
-                        setTimeout(() => {
-                            this.startGame();
-                            // Notify player 2 that game is starting
-                            this.sendMessage({
-                                type: 'gameStarted',
-                                gameState: this.gameState,
-                                hostReady: true
-                            });
-                        }, 1500);
-                    }
-                }, 1000);
+                    case 'game-started':
+                        this.debug('Game started message received');
+                        this.playerNumber = 2;
+                        this.isHost = false;
+                        this.isMyTurn = false;
+                        this.gameState = message.state;
+                        this.gameId = message.gameId;
+                        this.startGame();
+                        break;
+                        
+                    case 'game-state':
+                        this.debug('Received game state update');
+                        this.gameState = message.state;
+                        this.updateDisplay();
+                        break;
+                        
+                    case 'move':
+                        this.debug(`Received move: ${message.move.type} at ${message.move.row},${message.move.col}`);
+                        this.handleOpponentMove(message.move);
+                        break;
+                        
+                    case 'game-over':
+                        this.debug('Game over received');
+                        this.gameState = message.state;
+                        this.gameState.gameOver = true;
+                        this.updateDisplay();
+                        this.showGameOverModal();
+                        break;
+                        
+                    case 'error':
+                        this.debug(`Server error: ${message.message}`);
+                        alert(`Game error: ${message.message}`);
+                        break;
+                }
+            }
+
+            createGame() {
+                this.connectToServer();
+                this.sendToServer({ type: 'create', playerId: this.playerId });
             }
 
             joinGame(gameId) {
                 this.gameId = gameId;
-                this.playerNumber = 2;
-                this.isMyTurn = false;
-                
-                this.debug(`Attempting to join game: ${gameId}`);
-                
-                let gameData = this.getGameData(gameId);
-                
-                if (!gameData) {
-                    // Create initial game data if it doesn't exist
-                    gameData = {
-                        host: 'waiting',
-                        gameState: this.initializeGameState(),
-                        players: ['waiting'],
-                        created: Date.now(),
-                        status: 'waiting'
-                    };
-                }
-
-                // Add this player and mark as ready
-                if (gameData.players.length < 2) {
-                    gameData.players = [gameData.players[0] || 'waiting', this.playerId];
-                } else if (!gameData.players.includes(this.playerId)) {
-                    gameData.players[1] = this.playerId;
-                }
-                gameData.status = 'ready';
-                this.storeGameData(gameData);
-                this.debug('Added to game, notifying host...');
-                
-                this.gameState = gameData.gameState;
-                
-                // Notify host
-                this.sendMessage({
-                    type: 'playerJoined',
-                    playerId: this.playerId,
-                    timestamp: Date.now()
-                });
-
-                // Wait for host to start the game
-                this.debug('Waiting for host to start game...');
-                setTimeout(() => {
-                    this.startGame();
-                }, 1000);
-            }
-
-            storeGameData(gameData) {
-                try {
-                    const dataString = JSON.stringify(gameData);
-                    sessionStorage.setItem(`game_${this.gameId}`, dataString);
-                    this.debug(`Game data stored for ID: ${this.gameId}`);
-                } catch (e) {
-                    this.debug(`Storage error: ${e.message}`);
-                }
-            }
-
-            getGameData(gameId) {
-                try {
-                    const data = sessionStorage.getItem(`game_${gameId}`);
-                    return data ? JSON.parse(data) : null;
-                } catch (e) {
-                    this.debug(`Storage read error: ${e.message}`);
-                    return null;
-                }
-            }
-
-            sendMessage(message) {
-                if (!this.gameId) return;
-                
-                try {
-                    const messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
-                    const newMessage = {
-                        from: this.playerId,
-                        fromPlayer: this.playerNumber,
-                        to: this.playerNumber === 1 ? 2 : 1,
-                        message: message,
-                        timestamp: Date.now(),
-                        id: this.generateId()
-                    };
-                    
-                    messages.push(newMessage);
-                    
-                    // Keep only last 50 messages
-                    if (messages.length > 50) {
-                        messages.splice(0, messages.length - 50);
-                    }
-                    
-                    sessionStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
-                    this.debug(`Message sent: ${message.type}`);
-                } catch (e) {
-                    this.debug(`Message send error: ${e.message}`);
-                }
-            }
-
-            checkForMessages() {
-                if (!this.gameId) return;
-                
-                try {
-                    const messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
-                    
-                    const newMessages = messages.filter(msg => 
-                        msg.to === this.playerNumber && 
-                        msg.timestamp > this.lastMessageTime &&
-                        msg.from !== this.playerId
-                    );
-
-                    newMessages.forEach(msg => {
-                        this.debug(`Received message: ${msg.message.type} from Player ${msg.fromPlayer}`);
-                        this.handleMessage(msg.message);
-                        this.lastMessageTime = Math.max(this.lastMessageTime, msg.timestamp);
-                    });
-                } catch (e) {
-                    this.debug(`Message check error: ${e.message}`);
-                }
-            }
-
-            handleMessage(message) {
-                switch(message.type) {
-                    case 'playerJoined':
-                        this.debug('Player joined message received');
-                        if (this.isHost) {
-                            // Update game data to show player 2 joined
-                            const gameData = this.getGameData(this.gameId);
-                            if (gameData && gameData.players.length < 2) {
-                                gameData.players = [gameData.players[0], message.playerId];
-                                gameData.status = 'ready';
-                                this.storeGameData(gameData);
-                            }
-                        }
-                        break;
-                    case 'gameStarted':
-                        this.debug('Game started message received');
-                        if (!this.isHost && !this.gameStarted) {
-                            this.gameState = message.gameState;
-                            this.startGame();
-                        }
-                        break;
-                    case 'move':
-                        this.debug(`Move received: ${message.move.type} at ${message.move.row},${message.move.col}`);
-                        this.handleOpponentMove(message.move);
-                        break;
-                    case 'gameState':
-                        this.debug('Game state sync received');
-                        if (!this.gameState.gameOver) {
-                            this.gameState = message.gameState;
-                            this.updateDisplay();
-                        }
-                        break;
-                }
+                this.connectToServer();
             }
 
             startGame() {
@@ -595,34 +536,24 @@
                 this.gameStarted = true;
                 this.debug('Starting game...');
                 
-                // Clear waiting interval
-                if (this.waitingInterval) {
-                    clearInterval(this.waitingInterval);
-                }
-                
                 document.getElementById('menuScreen').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'block';
                 
                 this.createGameBoard();
                 this.updateDisplay();
-                
-                this.debug('Game board created and display updated');
             }
 
             createGameBoard() {
                 const board = document.getElementById('gameBoard');
                 board.innerHTML = '';
                 
-                // Create a 7x7 grid (4x4 dots with lines and boxes between)
                 for (let row = 0; row < 7; row++) {
                     for (let col = 0; col < 7; col++) {
                         if (row % 2 === 0 && col % 2 === 0) {
-                            // Dot position
                             const dot = document.createElement('div');
                             dot.className = 'dot';
                             board.appendChild(dot);
                         } else if (row % 2 === 0 && col % 2 === 1) {
-                            // Horizontal line position
                             const line = document.createElement('div');
                             line.className = 'line horizontal-line';
                             const lineRow = Math.floor(row / 2);
@@ -633,7 +564,6 @@
                             line.dataset.col = lineCol;
                             board.appendChild(line);
                         } else if (row % 2 === 1 && col % 2 === 0) {
-                            // Vertical line position
                             const line = document.createElement('div');
                             line.className = 'line vertical-line';
                             const lineRow = Math.floor(row / 2);
@@ -644,7 +574,6 @@
                             line.dataset.col = lineCol;
                             board.appendChild(line);
                         } else {
-                            // Box position
                             const box = document.createElement('div');
                             box.className = 'box';
                             const boxRow = Math.floor(row / 2);
@@ -655,8 +584,6 @@
                         }
                     }
                 }
-                
-                this.debug('Game board created with proper grid structure');
             }
 
             makeMove(type, row, col) {
@@ -684,32 +611,32 @@
                     this.gameState.boxes[boxRow][boxCol] = this.gameState.currentPlayer;
                     this.gameState.scores[this.gameState.currentPlayer - 1]++;
                     scoredPoints = true;
-                    this.debug(`Box completed at ${boxRow},${boxCol} for player ${this.gameState.currentPlayer}`);
                 });
 
                 // Switch players only if no points were scored
                 if (!scoredPoints) {
                     this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
                     this.isMyTurn = !this.isMyTurn;
-                    this.debug(`Turn switched to player ${this.gameState.currentPlayer}`);
-                } else {
-                    this.debug(`Player ${this.gameState.currentPlayer} gets another turn (scored ${completedBoxes.length} points)`);
                 }
 
-                this.sendMove(type, row, col);
+                this.sendToServer({
+                    type: 'move',
+                    gameId: this.gameId,
+                    move: { type, row, col }
+                });
+                
                 this.updateDisplay();
+                
+                // Check if game is over
                 this.checkGameOver();
-                this.syncGameState();
             }
 
             handleOpponentMove(move) {
                 const { type, row, col } = move;
-                this.debug(`Processing opponent move: ${type} at ${row},${col}`);
                 
                 const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
                 
                 if (lines[row] && lines[row][col]) {
-                    this.debug('Opponent move already processed, skipping');
                     return;
                 }
                 
@@ -731,50 +658,25 @@
                 }
 
                 this.updateDisplay();
-                this.checkGameOver();
-            }
-
-            sendMove(type, row, col) {
-                this.sendMessage({
-                    type: 'move',
-                    move: { type, row, col }
-                });
                 
-                // Update stored game state
-                const gameData = this.getGameData(this.gameId);
-                if (gameData) {
-                    gameData.gameState = this.gameState;
-                    this.storeGameData(gameData);
-                }
-            }
-
-            syncGameState() {
-                if (this.gameId && this.gameStarted) {
-                    this.sendMessage({
-                        type: 'gameState',
-                        gameState: this.gameState
-                    });
-                }
+                // Check if game is over
+                this.checkGameOver();
             }
 
             checkForCompletedBoxes(lineType, row, col) {
                 const completed = [];
                 
                 if (lineType === 'horizontal') {
-                    // Check box above (if exists)
                     if (row > 0 && this.isBoxComplete(row - 1, col)) {
                         completed.push([row - 1, col]);
                     }
-                    // Check box below (if exists)
                     if (row < this.gridSize - 1 && this.isBoxComplete(row, col)) {
                         completed.push([row, col]);
                     }
-                } else { // vertical
-                    // Check box to the left (if exists)
+                } else {
                     if (col > 0 && this.isBoxComplete(row, col - 1)) {
                         completed.push([row, col - 1]);
                     }
-                    // Check box to the right (if exists)
                     if (col < this.gridSize - 1 && this.isBoxComplete(row, col)) {
                         completed.push([row, col]);
                     }
@@ -795,18 +697,15 @@
             }
 
             updateDisplay() {
-                // Update scores
                 document.getElementById('player1Score').textContent = this.gameState.scores[0];
                 document.getElementById('player2Score').textContent = this.gameState.scores[1];
                 
-                // Update current player indicator
                 const player1Info = document.getElementById('player1Info');
                 const player2Info = document.getElementById('player2Info');
                 
                 player1Info.classList.toggle('current-player', this.gameState.currentPlayer === 1);
                 player2Info.classList.toggle('current-player', this.gameState.currentPlayer === 2);
                 
-                // Update game status
                 const status = document.getElementById('gameStatus');
                 if (this.gameState.gameOver) {
                     status.textContent = 'Game Over';
@@ -816,12 +715,10 @@
                     status.textContent = 'Opponent\'s turn';
                 }
                 
-                // Update board visual
                 this.updateBoard();
             }
 
             updateBoard() {
-                // Update horizontal lines
                 document.querySelectorAll('.horizontal-line').forEach(line => {
                     const row = parseInt(line.dataset.row);
                     const col = parseInt(line.dataset.col);
@@ -832,7 +729,6 @@
                     }
                 });
                 
-                // Update vertical lines
                 document.querySelectorAll('.vertical-line').forEach(line => {
                     const row = parseInt(line.dataset.row);
                     const col = parseInt(line.dataset.col);
@@ -843,7 +739,6 @@
                     }
                 });
                 
-                // Update boxes
                 document.querySelectorAll('.box').forEach(box => {
                     const row = parseInt(box.dataset.row);
                     const col = parseInt(box.dataset.col);
@@ -868,8 +763,12 @@
                 
                 if (completedBoxes === totalBoxes) {
                     this.gameState.gameOver = true;
-                    this.debug('Game over detected');
-                    setTimeout(() => this.showGameOverModal(), 500);
+                    this.sendToServer({
+                        type: 'game-over',
+                        gameId: this.gameId,
+                        state: this.gameState
+                    });
+                    this.showGameOverModal();
                 }
             }
 
@@ -908,14 +807,7 @@
                 const inviteUrl = `${window.location.origin}${window.location.pathname}?join=${this.gameId}`;
                 document.getElementById('inviteLink').textContent = inviteUrl;
                 document.getElementById('inviteSection').style.display = 'block';
-                
-                // Update browser URL to include game info
-                const urlData = {
-                    id: this.gameId,
-                    host: this.playerId,
-                    created: Date.now()
-                };
-                window.history.replaceState({}, '', `${window.location.pathname}?join=${this.gameId}#${btoa(JSON.stringify(urlData))}`);
+                window.history.replaceState({}, '', `${window.location.pathname}?join=${this.gameId}`);
             }
         }
 
@@ -977,31 +869,17 @@
         }
 
         function backToMenu() {
-            // Clean up all intervals
-            if (game.messageInterval) clearInterval(game.messageInterval);
-            if (game.syncInterval) clearInterval(game.syncInterval);
-            if (game.waitingInterval) clearInterval(game.waitingInterval);
-            
-            // Clean up storage
-            if (game.gameId) {
-                try {
-                    sessionStorage.removeItem(`game_${game.gameId}`);
-                    sessionStorage.removeItem(`messages_${game.gameId}`);
-                } catch (e) {
-                    console.log('Storage cleanup error:', e);
-                }
+            if (game.ws) {
+                game.ws.close();
             }
             
-            // Reset UI
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('menuScreen').style.display = 'block';
             document.getElementById('inviteSection').style.display = 'none';
             document.getElementById('gameOverModal').style.display = 'none';
             
-            // Clear URL
             window.history.replaceState({}, '', window.location.pathname);
             
-            // Create new game instance
             game = new DotsAndBoxesGame();
         }
 
@@ -1011,58 +889,9 @@
             const joinGameId = urlParams.get('join');
             
             if (joinGameId) {
-                console.log('Auto-joining game:', joinGameId);
-                setTimeout(() => {
-                    try {
-                        game.joinGame(joinGameId);
-                    } catch (error) {
-                        console.error('Error joining game:', error);
-                        alert('Error joining game. Please try again or request a new invite link.');
-                    }
-                }, 1000);
+                game.joinGame(joinGameId);
             }
         });
-
-        // Handle page visibility for better connection management
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && game.gameId) {
-                game.checkForMessages();
-                if (game.gameStarted) {
-                    game.syncGameState();
-                }
-            }
-        });
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const joinGameId = urlParams.get('join');
-            
-            if (!joinGameId && game.gameId) {
-                backToMenu();
-            }
-        });
-
-        // Periodic cleanup of old game data
-        setInterval(() => {
-            try {
-                const now = Date.now();
-                const oneHour = 60 * 60 * 1000;
-                
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const key = sessionStorage.key(i);
-                    if (key && key.startsWith('game_')) {
-                        const data = JSON.parse(sessionStorage.getItem(key) || '{}');
-                        if (data.created && (now - data.created) > oneHour) {
-                            sessionStorage.removeItem(key);
-                            sessionStorage.removeItem(key.replace('game_', 'messages_'));
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Cleanup error:', e);
-            }
-        }, 300000); // Run every 5 minutes
     </script>
 </body>
 </html>
