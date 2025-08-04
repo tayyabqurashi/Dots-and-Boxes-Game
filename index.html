@@ -1111,8 +1111,11 @@
             gameBoard.innerHTML = '';
             
             // For 8x8 grid of dots, we need 15 rows and 15 columns (2*8-1 = 15)
-            for (let row = 0; row < 15; row++) {
-                for (let col = 0; col < 15; col++) {
+            const rows = gameConfig.gridSize * 2 - 1;
+            const cols = gameConfig.gridSize * 2 - 1;
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
                     if (row % 2 === 0 && col % 2 === 0) {
                         // Dot
                         const dot = document.createElement('div');
@@ -1124,7 +1127,7 @@
                         line.className = 'line horizontal-line';
                         const lineRow = Math.floor(row / 2);
                         const lineCol = Math.floor(col / 2);
-                        line.addEventListener('click', () => makeMove('horizontal', lineRow, lineCol));
+                        line.dataset.type = 'horizontal';
                         line.dataset.row = lineRow;
                         line.dataset.col = lineCol;
                         gameBoard.appendChild(line);
@@ -1134,7 +1137,7 @@
                         line.className = 'line vertical-line';
                         const lineRow = Math.floor(row / 2);
                         const lineCol = Math.floor(col / 2);
-                        line.addEventListener('click', () => makeMove('vertical', lineRow, lineCol));
+                        line.dataset.type = 'vertical';
                         line.dataset.row = lineRow;
                         line.dataset.col = lineCol;
                         gameBoard.appendChild(line);
@@ -1150,45 +1153,61 @@
                     }
                 }
             }
+            
+            // Add event listeners after creating the board
+            document.querySelectorAll('.horizontal-line, .vertical-line').forEach(line => {
+                line.addEventListener('click', handleLineClick);
+            });
+        }
+
+        // Handle line click
+        function handleLineClick() {
+            const type = this.dataset.type;
+            const row = parseInt(this.dataset.row);
+            const col = parseInt(this.dataset.col);
+            
+            makeMove(type, row, col);
         }
 
         // Make a move
         function makeMove(type, row, col) {
-            if (!gameState.isHost && gameState.currentPlayer !== gameState.playerNumber) {
-                gameStatus.textContent = "It's not your turn!";
-                setTimeout(() => {
-                    updateGameDisplay();
-                }, 1000);
-                return;
-            }
-
+            if (gameState.gameOver) return;
+            if (gameState.currentPlayer !== gameState.playerNumber && !gameState.isHost) return;
+            
             const lines = type === 'horizontal' ? 
                 gameState.horizontalLines : gameState.verticalLines;
             
             if (lines[row][col]) {
-                return;
+                return; // Line already drawn
             }
-
+            
+            // Mark line as drawn
             lines[row][col] = true;
             
+            // Check for completed boxes
             const completedBoxes = checkForCompletedBoxes(type, row, col);
-            let scoredPoints = completedBoxes.length > 0;
+            let scored = completedBoxes.length > 0;
             
+            // Update boxes
             completedBoxes.forEach(([boxRow, boxCol]) => {
                 gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
                 gameState.scores[gameState.currentPlayer - 1]++;
             });
-
-            if (!scoredPoints) {
+            
+            // Switch player if no box was completed
+            if (!scored) {
                 gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
                 
-                // Simulate opponent move after a short delay
-                if (!gameState.gameOver && gameState.currentPlayer !== gameState.playerNumber) {
-                    setTimeout(makeOpponentMove, 1000);
+                // If it's opponent's turn, make their move
+                if (gameState.currentPlayer !== gameState.playerNumber) {
+                    setTimeout(makeOpponentMove, 800);
                 }
             }
             
+            // Check if game is over
             checkGameOver();
+            
+            // Update display
             updateGameDisplay();
         }
 
@@ -1196,88 +1215,32 @@
         function makeOpponentMove() {
             if (gameState.gameOver) return;
             
-            // Find an available move
-            let moveFound = false;
+            // Find all available moves
+            const availableMoves = [];
             
-            // Try to find a move that completes a box
-            for (let row = 0; row < gameConfig.gridSize && !moveFound; row++) {
-                for (let col = 0; col < gameConfig.gridSize - 1 && !moveFound; col++) {
+            // Horizontal moves
+            for (let row = 0; row < gameConfig.gridSize; row++) {
+                for (let col = 0; col < gameConfig.gridSize - 1; col++) {
                     if (!gameState.horizontalLines[row][col]) {
-                        // Check if this move would complete a box
-                        const completedBoxes = checkForCompletedBoxes('horizontal', row, col);
-                        if (completedBoxes.length > 0) {
-                            gameState.horizontalLines[row][col] = true;
-                            completedBoxes.forEach(([boxRow, boxCol]) => {
-                                gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
-                                gameState.scores[gameState.currentPlayer - 1]++;
-                            });
-                            moveFound = true;
-                        }
+                        availableMoves.push({ type: 'horizontal', row, col });
                     }
                 }
             }
             
-            // Try vertical lines
-            for (let row = 0; row < gameConfig.gridSize - 1 && !moveFound; row++) {
-                for (let col = 0; col < gameConfig.gridSize && !moveFound; col++) {
+            // Vertical moves
+            for (let row = 0; row < gameConfig.gridSize - 1; row++) {
+                for (let col = 0; col < gameConfig.gridSize; col++) {
                     if (!gameState.verticalLines[row][col]) {
-                        // Check if this move would complete a box
-                        const completedBoxes = checkForCompletedBoxes('vertical', row, col);
-                        if (completedBoxes.length > 0) {
-                            gameState.verticalLines[row][col] = true;
-                            completedBoxes.forEach(([boxRow, boxCol]) => {
-                                gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
-                                gameState.scores[gameState.currentPlayer - 1]++;
-                            });
-                            moveFound = true;
-                        }
+                        availableMoves.push({ type: 'vertical', row, col });
                     }
                 }
             }
             
-            // If no box-completing move found, make a random move
-            if (!moveFound) {
-                const availableMoves = [];
-                
-                // Find all available horizontal moves
-                for (let row = 0; row < gameConfig.gridSize; row++) {
-                    for (let col = 0; col < gameConfig.gridSize - 1; col++) {
-                        if (!gameState.horizontalLines[row][col]) {
-                            availableMoves.push({type: 'horizontal', row, col});
-                        }
-                    }
-                }
-                
-                // Find all available vertical moves
-                for (let row = 0; row < gameConfig.gridSize - 1; row++) {
-                    for (let col = 0; col < gameConfig.gridSize; col++) {
-                        if (!gameState.verticalLines[row][col]) {
-                            availableMoves.push({type: 'vertical', row, col});
-                        }
-                    }
-                }
-                
-                // Pick a random move
-                if (availableMoves.length > 0) {
-                    const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-                    gameState[randomMove.type === 'horizontal' ? 'horizontalLines' : 'verticalLines']
-                        [randomMove.row][randomMove.col] = true;
-                    
-                    // Check if this move completed any boxes
-                    const completedBoxes = checkForCompletedBoxes(randomMove.type, randomMove.row, randomMove.col);
-                    if (completedBoxes.length > 0) {
-                        completedBoxes.forEach(([boxRow, boxCol]) => {
-                            gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
-                            gameState.scores[gameState.currentPlayer - 1]++;
-                        });
-                    } else {
-                        gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-                    }
-                }
+            // Pick a random move
+            if (availableMoves.length > 0) {
+                const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                makeMove(randomMove.type, randomMove.row, randomMove.col);
             }
-            
-            checkGameOver();
-            updateGameDisplay();
         }
 
         // Check for completed boxes
@@ -1285,7 +1248,7 @@
             const completed = [];
             
             if (lineType === 'horizontal') {
-                // Check box above
+                // Check box above the line
                 if (row > 0) {
                     const boxRow = row - 1;
                     const boxCol = col;
@@ -1293,7 +1256,8 @@
                         completed.push([boxRow, boxCol]);
                     }
                 }
-                // Check box below
+                
+                // Check box below the line
                 if (row < gameConfig.gridSize - 1) {
                     const boxRow = row;
                     const boxCol = col;
@@ -1301,7 +1265,7 @@
                         completed.push([boxRow, boxCol]);
                     }
                 }
-            } else {
+            } else { // vertical line
                 // Check box to the left
                 if (col > 0) {
                     const boxRow = row;
@@ -1310,6 +1274,7 @@
                         completed.push([boxRow, boxCol]);
                     }
                 }
+                
                 // Check box to the right
                 if (col < gameConfig.gridSize - 1) {
                     const boxRow = row;
@@ -1326,11 +1291,11 @@
         // Check if box is complete
         function isBoxComplete(row, col) {
             return (
-                gameState.horizontalLines[row][col] &&
-                gameState.horizontalLines[row + 1][col] &&
-                gameState.verticalLines[row][col] &&
-                gameState.verticalLines[row][col + 1] &&
-                gameState.boxes[row][col] === 0
+                gameState.horizontalLines[row][col] && // top
+                gameState.horizontalLines[row + 1][col] && // bottom
+                gameState.verticalLines[row][col] && // left
+                gameState.verticalLines[row][col + 1] && // right
+                gameState.boxes[row][col] === 0 // not already claimed
             );
         }
 
@@ -1416,7 +1381,8 @@
                 const col = parseInt(line.dataset.col);
                 if (gameState.horizontalLines[row][col]) {
                     line.classList.add('drawn');
-                    line.classList.add(`player${gameState.currentPlayer}`);
+                    line.classList.toggle('player1', gameState.currentPlayer === 1);
+                    line.classList.toggle('player2', gameState.currentPlayer === 2);
                 } else {
                     line.classList.remove('drawn', 'player1', 'player2');
                 }
@@ -1428,7 +1394,8 @@
                 const col = parseInt(line.dataset.col);
                 if (gameState.verticalLines[row][col]) {
                     line.classList.add('drawn');
-                    line.classList.add(`player${gameState.currentPlayer}`);
+                    line.classList.toggle('player1', gameState.currentPlayer === 1);
+                    line.classList.toggle('player2', gameState.currentPlayer === 2);
                 } else {
                     line.classList.remove('drawn', 'player1', 'player2');
                 }
