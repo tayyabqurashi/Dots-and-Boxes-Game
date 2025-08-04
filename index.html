@@ -252,6 +252,8 @@
             margin: 10px 0;
             font-size: 12px;
             font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         @media (max-width: 768px) {
@@ -350,6 +352,7 @@
                 this.gameState = this.initializeGameState();
                 this.lastMessageTime = 0;
                 this.debugMode = false;
+                this.gameStarted = false;
                 this.setupConnection();
             }
 
@@ -359,8 +362,8 @@
 
             setupConnection() {
                 this.checkForMessages();
-                this.messageInterval = setInterval(() => this.checkForMessages(), 1500);
-                this.syncInterval = setInterval(() => this.syncGameState(), 3000);
+                this.messageInterval = setInterval(() => this.checkForMessages(), 1000);
+                this.syncInterval = setInterval(() => this.syncGameState(), 2000);
             }
 
             initializeGameState() {
@@ -411,13 +414,15 @@
             startWaitingForPlayer() {
                 this.waitingInterval = setInterval(() => {
                     const gameData = this.getGameData(this.gameId);
-                    if (gameData && gameData.players.length >= 2) {
+                    if (gameData && gameData.players.length >= 2 && gameData.status === 'ready') {
                         this.debug('Player 2 detected, starting game...');
                         clearInterval(this.waitingInterval);
                         
                         // Update status elements
-                        document.querySelector('.connection-status').className = 'connection-status connected';
-                        document.getElementById('waitingStatus').textContent = 'Player 2 connected! Starting game...';
+                        const statusElement = document.querySelector('.connection-status');
+                        const waitingElement = document.getElementById('waitingStatus');
+                        if (statusElement) statusElement.className = 'connection-status connected';
+                        if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
                         
                         // Start the game after a short delay
                         setTimeout(() => {
@@ -428,7 +433,7 @@
                                 gameState: this.gameState,
                                 hostReady: true
                             });
-                        }, 2000);
+                        }, 1500);
                     }
                 }, 1000);
             }
@@ -443,6 +448,7 @@
                 let gameData = this.getGameData(gameId);
                 
                 if (!gameData) {
+                    // Create initial game data if it doesn't exist
                     gameData = {
                         host: 'waiting',
                         gameState: this.initializeGameState(),
@@ -452,13 +458,15 @@
                     };
                 }
 
-                // Add this player
-                if (!gameData.players.includes(this.playerId)) {
-                    gameData.players = [gameData.players[0], this.playerId];
-                    gameData.status = 'ready';
-                    this.storeGameData(gameData);
-                    this.debug('Added to game, notifying host...');
+                // Add this player and mark as ready
+                if (gameData.players.length < 2) {
+                    gameData.players = [gameData.players[0] || 'waiting', this.playerId];
+                } else if (!gameData.players.includes(this.playerId)) {
+                    gameData.players[1] = this.playerId;
                 }
+                gameData.status = 'ready';
+                this.storeGameData(gameData);
+                this.debug('Added to game, notifying host...');
                 
                 this.gameState = gameData.gameState;
                 
@@ -471,76 +479,98 @@
 
                 // Start game immediately for player 2
                 this.debug('Starting game for player 2...');
-                this.startGame();
+                setTimeout(() => {
+                    this.startGame();
+                }, 1000);
             }
 
             storeGameData(gameData) {
-                const dataString = JSON.stringify(gameData);
-                localStorage.setItem(`game_${this.gameId}`, dataString);
-                sessionStorage.setItem(`game_${this.gameId}`, dataString);
-                this.debug(`Game data stored for ID: ${this.gameId}`);
+                try {
+                    const dataString = JSON.stringify(gameData);
+                    sessionStorage.setItem(`game_${this.gameId}`, dataString);
+                    this.debug(`Game data stored for ID: ${this.gameId}`);
+                } catch (e) {
+                    this.debug(`Storage error: ${e.message}`);
+                }
             }
 
             getGameData(gameId) {
-                let data = localStorage.getItem(`game_${gameId}`);
-                if (!data) {
-                    data = sessionStorage.getItem(`game_${gameId}`);
+                try {
+                    const data = sessionStorage.getItem(`game_${gameId}`);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    this.debug(`Storage read error: ${e.message}`);
+                    return null;
                 }
-                return data ? JSON.parse(data) : null;
             }
 
             sendMessage(message) {
                 if (!this.gameId) return;
                 
-                const messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
-                const newMessage = {
-                    from: this.playerId,
-                    fromPlayer: this.playerNumber,
-                    to: this.playerNumber === 1 ? 2 : 1,
-                    message: message,
-                    timestamp: Date.now()
-                };
-                
-                messages.push(newMessage);
-                
-                if (messages.length > 100) {
-                    messages.splice(0, messages.length - 100);
+                try {
+                    const messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
+                    const newMessage = {
+                        from: this.playerId,
+                        fromPlayer: this.playerNumber,
+                        to: this.playerNumber === 1 ? 2 : 1,
+                        message: message,
+                        timestamp: Date.now(),
+                        id: this.generateId()
+                    };
+                    
+                    messages.push(newMessage);
+                    
+                    // Keep only last 50 messages
+                    if (messages.length > 50) {
+                        messages.splice(0, messages.length - 50);
+                    }
+                    
+                    sessionStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
+                    this.debug(`Message sent: ${message.type}`);
+                } catch (e) {
+                    this.debug(`Message send error: ${e.message}`);
                 }
-                
-                localStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
-                sessionStorage.setItem(`messages_${this.gameId}`, JSON.stringify(messages));
-                
-                this.debug(`Message sent: ${message.type}`);
             }
 
             checkForMessages() {
                 if (!this.gameId) return;
                 
-                let messages = JSON.parse(localStorage.getItem(`messages_${this.gameId}`) || '[]');
-                if (messages.length === 0) {
-                    messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
-                }
-                
-                const newMessages = messages.filter(msg => 
-                    msg.to === this.playerNumber && 
-                    msg.timestamp > this.lastMessageTime
-                );
+                try {
+                    const messages = JSON.parse(sessionStorage.getItem(`messages_${this.gameId}`) || '[]');
+                    
+                    const newMessages = messages.filter(msg => 
+                        msg.to === this.playerNumber && 
+                        msg.timestamp > this.lastMessageTime &&
+                        msg.from !== this.playerId
+                    );
 
-                newMessages.forEach(msg => {
-                    this.debug(`Received message: ${msg.message.type} from Player ${msg.fromPlayer}`);
-                    this.handleMessage(msg.message);
-                    this.lastMessageTime = msg.timestamp;
-                });
+                    newMessages.forEach(msg => {
+                        this.debug(`Received message: ${msg.message.type} from Player ${msg.fromPlayer}`);
+                        this.handleMessage(msg.message);
+                        this.lastMessageTime = Math.max(this.lastMessageTime, msg.timestamp);
+                    });
+                } catch (e) {
+                    this.debug(`Message check error: ${e.message}`);
+                }
             }
 
             handleMessage(message) {
                 switch(message.type) {
                     case 'playerJoined':
                         this.debug('Player joined message received');
+                        if (this.isHost) {
+                            // Update game data to show player 2 joined
+                            const gameData = this.getGameData(this.gameId);
+                            if (gameData && gameData.players.length < 2) {
+                                gameData.players = [gameData.players[0], message.playerId];
+                                gameData.status = 'ready';
+                                this.storeGameData(gameData);
+                            }
+                        }
                         break;
                     case 'gameStarted':
                         this.debug('Game started message received');
-                        if (!this.isHost) {
+                        if (!this.isHost && !this.gameStarted) {
                             this.gameState = message.gameState;
                             this.updateDisplay();
                         }
@@ -551,13 +581,18 @@
                         break;
                     case 'gameState':
                         this.debug('Game state sync received');
-                        this.gameState = message.gameState;
-                        this.updateDisplay();
+                        if (!this.gameState.gameOver) {
+                            this.gameState = message.gameState;
+                            this.updateDisplay();
+                        }
                         break;
                 }
             }
 
             startGame() {
+                if (this.gameStarted) return;
+                
+                this.gameStarted = true;
                 this.debug('Starting game...');
                 
                 // Clear waiting interval
@@ -632,7 +667,7 @@
 
                 const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
                 
-                if (lines[row][col]) {
+                if (lines[row] && lines[row][col]) {
                     this.debug(`Move rejected: line already drawn at ${row},${col}`);
                     return;
                 }
@@ -673,7 +708,7 @@
                 
                 const lines = type === 'horizontal' ? this.gameState.horizontalLines : this.gameState.verticalLines;
                 
-                if (lines[row][col]) {
+                if (lines[row] && lines[row][col]) {
                     this.debug('Opponent move already processed, skipping');
                     return;
                 }
@@ -714,7 +749,7 @@
             }
 
             syncGameState() {
-                if (this.gameId) {
+                if (this.gameId && this.gameStarted) {
                     this.sendMessage({
                         type: 'gameState',
                         gameState: this.gameState
@@ -905,16 +940,29 @@
                 navigator.clipboard.writeText(link).then(() => {
                     alert('Link copied to clipboard!');
                 }).catch(() => {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = link;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    alert('Link copied to clipboard!');
+                    fallbackCopyTextToClipboard(link);
                 });
+            } else {
+                fallbackCopyTextToClipboard(link);
             }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.top = '0';
+            textArea.style.left = '0';
+            textArea.style.position = 'fixed';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Link copied to clipboard!');
+            } catch (err) {
+                alert('Failed to copy link. Please copy manually: ' + text);
+            }
+            document.body.removeChild(textArea);
         }
 
         function toggleDebug() {
@@ -937,8 +985,6 @@
             // Clean up storage
             if (game.gameId) {
                 try {
-                    localStorage.removeItem(`game_${game.gameId}`);
-                    localStorage.removeItem(`messages_${game.gameId}`);
                     sessionStorage.removeItem(`game_${game.gameId}`);
                     sessionStorage.removeItem(`messages_${game.gameId}`);
                 } catch (e) {
@@ -981,7 +1027,9 @@
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && game.gameId) {
                 game.checkForMessages();
-                game.syncGameState();
+                if (game.gameStarted) {
+                    game.syncGameState();
+                }
             }
         });
 
@@ -994,6 +1042,27 @@
                 backToMenu();
             }
         });
+
+        // Periodic cleanup of old game data
+        setInterval(() => {
+            try {
+                const now = Date.now();
+                const oneHour = 60 * 60 * 1000;
+                
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    if (key && key.startsWith('game_')) {
+                        const data = JSON.parse(sessionStorage.getItem(key) || '{}');
+                        if (data.created && (now - data.created) > oneHour) {
+                            sessionStorage.removeItem(key);
+                            sessionStorage.removeItem(key.replace('game_', 'messages_'));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Cleanup error:', e);
+            }
+        }, 300000); // Run every 5 minutes
     </script>
 </body>
 </html>
