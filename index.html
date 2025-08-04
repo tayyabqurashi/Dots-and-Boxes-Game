@@ -424,7 +424,7 @@
                         if (statusElement) statusElement.className = 'connection-status connected';
                         if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
                         
-                        // Start the game after a short delay
+                        // Start the game for host
                         setTimeout(() => {
                             this.startGame();
                             // Notify player 2 that game is starting
@@ -477,8 +477,8 @@
                     timestamp: Date.now()
                 });
 
-                // Start game immediately for player 2
-                this.debug('Starting game for player 2...');
+                // Wait for host to start the game
+                this.debug('Waiting for host to start game...');
                 setTimeout(() => {
                     this.startGame();
                 }, 1000);
@@ -572,7 +572,7 @@
                         this.debug('Game started message received');
                         if (!this.isHost && !this.gameStarted) {
                             this.gameState = message.gameState;
-                            this.updateDisplay();
+                            this.startGame();
                         }
                         break;
                     case 'move':
