@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multiplayer Dots and Boxes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,7 +13,7 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
             min-height: 100vh;
             display: flex;
@@ -24,15 +25,16 @@
 
         .container {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            box-shadow: 0 12px 40px rgba(31, 38, 135, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.18);
             max-width: 900px;
-            width: 100%;
+            width: 95%;
             position: relative;
             overflow: hidden;
+            z-index: 10;
         }
 
         .container::before {
@@ -56,6 +58,12 @@
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #ff6b6b, 0 0 40px #ff6b6b; }
+            to { text-shadow: 0 0 15px #fff, 0 0 25px #fff, 0 0 35px #4ecdc4, 0 0 45px #4ecdc4; }
         }
 
         .menu-screen {
@@ -66,7 +74,7 @@
         .menu-buttons {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
             align-items: center;
             margin-bottom: 30px;
         }
@@ -74,26 +82,30 @@
         button {
             background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
             border: none;
-            padding: 15px 30px;
+            padding: 16px 35px;
             border-radius: 50px;
             color: white;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            min-width: 200px;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+            min-width: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             position: relative;
             overflow: hidden;
         }
 
         button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.7);
         }
 
         button:active {
-            transform: translateY(1px);
+            transform: translateY(2px);
         }
 
         button::before {
@@ -121,12 +133,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 15px;
             background: rgba(0, 0, 0, 0.2);
             padding: 15px;
             border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
         .player-info {
@@ -149,7 +162,7 @@
         .game-board {
             display: grid;
             gap: 0;
-            margin: 20px auto;
+            margin: 25px auto;
             background: rgba(255, 255, 255, 0.1);
             padding: 30px;
             border-radius: 15px;
@@ -168,6 +181,13 @@
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
             margin: 2px;
             z-index: 2;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
 
         .line {
@@ -188,6 +208,12 @@
             background: #4ecdc4;
             cursor: default;
             box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
+            animation: drawLine 0.3s ease-out;
+        }
+
+        @keyframes drawLine {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .horizontal-line {
@@ -220,12 +246,20 @@
             background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
             box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
             color: white;
+            animation: claimBox 0.5s ease-out;
         }
 
         .box.player2 {
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
             box-shadow: 0 0 15px rgba(78, 205, 196, 0.6);
             color: white;
+            animation: claimBox 0.5s ease-out;
+        }
+
+        @keyframes claimBox {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .status {
@@ -334,13 +368,19 @@
 
         @media (max-width: 768px) {
             .container {
-                margin: 20px;
+                margin: 15px;
                 padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2.2em;
+                margin-bottom: 20px;
             }
             
             .game-info {
                 flex-direction: column;
                 text-align: center;
+                gap: 10px;
             }
             
             .horizontal-line {
@@ -361,8 +401,9 @@
                 padding: 15px;
             }
             
-            h1 {
-                font-size: 2.2em;
+            button {
+                min-width: 220px;
+                padding: 14px 20px;
             }
         }
 
@@ -389,65 +430,182 @@
             0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
+
+        .floating-dots {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(100vw, 100vh) rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <!-- Background elements -->
+    <div id="background"></div>
+    
     <div class="container">
-        <h1>🎯 Multiplayer Dots and Boxes</h1>
+        <h1><i class="fas fa-gamepad"></i> Multiplayer Dots and Boxes</h1>
         
         <div id="menuScreen" class="menu-screen">
             <div class="menu-buttons">
-                <button onclick="createGame()">🎮 Create New Game</button>
-                <button onclick="joinGamePrompt()">🔗 Join Game</button>
+                <button onclick="createGame()">
+                    <i class="fas fa-plus-circle"></i> Create New Game
+                </button>
+                <button onclick="joinGamePrompt()">
+                    <i class="fas fa-link"></i> Join Game
+                </button>
             </div>
             
             <div id="inviteSection" class="invite-section" style="display: none;">
-                <h3>Share this link with your friend:</h3>
+                <h3><i class="fas fa-share-alt"></i> Share this link with your friend:</h3>
                 <div id="inviteLink" class="invite-link"></div>
-                <button onclick="copyInviteLink()">📋 Copy Link</button>
+                <button onclick="copyInviteLink()">
+                    <i class="fas fa-copy"></i> Copy Link
+                </button>
                 <div class="status">
                     <span class="connection-status disconnected"></span>
                     <span id="waitingStatus">Waiting for player 2...</span>
                 </div>
-                <div id="debugInfo" class="debug-info" style="display: none;"></div>
             </div>
         </div>
 
         <div id="gameScreen" class="game-screen">
             <div class="game-info">
                 <div id="player1Info" class="player-info">
-                    Player 1: <span id="player1Score">0</span>
+                    <i class="fas fa-user"></i> Player 1: <span id="player1Score">0</span>
                 </div>
                 <div class="status">
                     <span id="connectionStatus" class="connection-status connected"></span>
                     <span id="gameStatus">Your turn</span>
                 </div>
                 <div id="player2Info" class="player-info">
-                    Player 2: <span id="player2Score">0</span>
+                    <i class="fas fa-user"></i> Player 2: <span id="player2Score">0</span>
                 </div>
             </div>
             
             <div id="gameBoard" class="game-board"></div>
             
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="backToMenu()">🏠 Back to Menu</button>
-                <button onclick="toggleDebug()" style="margin-left: 10px; background: linear-gradient(45deg, #4ecdc4, #44a08d);">🔍 Debug</button>
+                <button onclick="backToMenu()">
+                    <i class="fas fa-home"></i> Back to Menu
+                </button>
+                <button onclick="toggleDebug()" style="margin-left: 10px; background: linear-gradient(45deg, #4ecdc4, #44a08d);">
+                    <i class="fas fa-bug"></i> Debug
+                </button>
             </div>
         </div>
     </div>
 
     <div id="gameOverModal" class="modal">
         <div class="modal-content">
-            <h2 id="gameOverTitle">🎉 Game Over!</h2>
+            <h2 id="gameOverTitle"><i class="fas fa-trophy"></i> Game Over!</h2>
             <p id="gameOverText"></p>
-            <button onclick="backToMenu()">Play Again</button>
+            <button onclick="backToMenu()">
+                <i class="fas fa-redo"></i> Play Again
+            </button>
         </div>
     </div>
 
+    <div id="debugInfo" class="debug-info" style="display: none; position: fixed; bottom: 10px; right: 10px; width: 300px; z-index: 1000;"></div>
+
     <script>
-        // Using a reliable WebSocket server
-        const WS_SERVER_URL = "wss://socketsbay.com/wss/v2/1/demo/";
+        // Create background elements
+        function createBackground() {
+            const background = document.getElementById('background');
+            for (let i = 0; i < 50; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'floating-dots';
+                dot.style.left = `${Math.random() * 100}%`;
+                dot.style.top = `${Math.random() * 100}%`;
+                dot.style.width = `${Math.random() * 10 + 5}px`;
+                dot.style.height = dot.style.width;
+                dot.style.animationDuration = `${Math.random() * 20 + 10}s`;
+                dot.style.opacity = Math.random() * 0.5 + 0.2;
+                background.appendChild(dot);
+            }
+        }
         
+        // WebSocket simulation for demonstration
+        // In a real application, this would connect to an actual WebSocket server
+        class WebSocketSimulator {
+            constructor() {
+                this.listeners = {
+                    open: [],
+                    message: [],
+                    close: []
+                };
+                this.connected = false;
+            }
+            
+            connect() {
+                setTimeout(() => {
+                    this.connected = true;
+                    this.listeners.open.forEach(cb => cb());
+                }, 500);
+            }
+            
+            send(data) {
+                // Simulate message processing
+                setTimeout(() => {
+                    const message = JSON.parse(data);
+                    if (message.type === 'create') {
+                        this.listeners.message.forEach(cb => cb({
+                            data: JSON.stringify({
+                                type: 'game-created',
+                                gameId: message.gameId
+                            })
+                        }));
+                    } else if (message.type === 'join') {
+                        this.listeners.message.forEach(cb => cb({
+                            data: JSON.stringify({
+                                type: 'player-joined',
+                                playerId: message.playerId
+                            })
+                        }));
+                        
+                        // Simulate game start after a delay
+                        setTimeout(() => {
+                            this.listeners.message.forEach(cb => cb({
+                                data: JSON.stringify({
+                                    type: 'game-started',
+                                    gameId: message.gameId,
+                                    state: {
+                                        horizontalLines: Array(4).fill().map(() => Array(3).fill(false)),
+                                        verticalLines: Array(3).fill().map(() => Array(4).fill(false)),
+                                        boxes: Array(3).fill().map(() => Array(3).fill(0)),
+                                        scores: [0, 0],
+                                        currentPlayer: 1,
+                                        gameOver: false,
+                                        lastMove: null
+                                    },
+                                    playerNumber: 2
+                                })
+                            }));
+                        }, 1000);
+                    } else if (message.type === 'move') {
+                        this.listeners.message.forEach(cb => cb({
+                            data: JSON.stringify({
+                                type: 'move',
+                                move: message.move
+                            })
+                        }));
+                    }
+                }, 300);
+            }
+            
+            addEventListener(event, callback) {
+                this.listeners[event].push(callback);
+            }
+        }
+
         class DotsAndBoxesGame {
             constructor() {
                 this.gridSize = 4;
@@ -459,10 +617,12 @@
                 this.gameState = this.initializeGameState();
                 this.debugMode = false;
                 this.gameStarted = false;
-                this.ws = null;
-                this.connectionAttempts = 0;
-                this.maxConnectionAttempts = 5;
                 this.opponentConnected = false;
+                
+                // Use WebSocket simulator for this demo
+                this.ws = new WebSocketSimulator();
+                this.ws.addEventListener('open', () => this.handleWebSocketOpen());
+                this.ws.addEventListener('message', (event) => this.handleWebSocketMessage(event));
             }
 
             generateId() {
@@ -492,188 +652,106 @@
                 }
             }
 
-            connectToServer() {
-                if (this.ws) {
-                    this.ws.close();
+            handleWebSocketOpen() {
+                this.debug("Connected to game server");
+                
+                // Update connection status
+                const statusElement = document.querySelector('.connection-status');
+                if (statusElement) statusElement.className = 'connection-status connected';
+                
+                if (this.gameId) {
+                    if (this.isHost) {
+                        this.sendToServer({ 
+                            type: 'host-connect', 
+                            gameId: this.gameId, 
+                            playerId: this.playerId 
+                        });
+                    } else {
+                        this.sendToServer({ 
+                            type: 'join', 
+                            gameId: this.gameId, 
+                            playerId: this.playerId 
+                        });
+                    }
                 }
-                
-                this.ws = new WebSocket(WS_SERVER_URL);
-                
-                this.ws.onopen = () => {
-                    this.debug("Connected to game server");
-                    this.connectionAttempts = 0;
+            }
+
+            handleWebSocketMessage(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    this.debug(`Received message: ${message.type}`);
                     
-                    // Update connection status
-                    const statusElement = document.querySelector('.connection-status');
-                    if (statusElement) statusElement.className = 'connection-status connected';
-                    
-                    if (this.gameId) {
-                        if (this.isHost) {
-                            this.sendToServer({ 
-                                type: 'host-connect', 
-                                gameId: this.gameId, 
-                                playerId: this.playerId 
-                            });
-                        } else {
-                            this.sendToServer({ 
-                                type: 'join', 
-                                gameId: this.gameId, 
-                                playerId: this.playerId 
-                            });
-                        }
+                    switch(message.type) {
+                        case 'game-created':
+                            this.gameId = message.gameId;
+                            this.playerNumber = 1;
+                            this.isHost = true;
+                            this.isMyTurn = true;
+                            this.showInviteLink();
+                            break;
+                            
+                        case 'player-joined':
+                            if (this.isHost && !this.gameStarted) {
+                                this.opponentConnected = true;
+                                const statusElement = document.querySelector('.connection-status');
+                                const waitingElement = document.getElementById('waitingStatus');
+                                if (statusElement) statusElement.className = 'connection-status connected';
+                                if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
+                                
+                                setTimeout(() => {
+                                    this.startGame();
+                                    this.sendToServer({
+                                        type: 'game-started',
+                                        gameId: this.gameId,
+                                        state: this.gameState,
+                                        playerNumber: 2
+                                    });
+                                }, 1000);
+                            }
+                            break;
+                            
+                        case 'game-started':
+                            this.playerNumber = message.playerNumber;
+                            this.isHost = false;
+                            this.isMyTurn = (this.playerNumber === 1);
+                            this.gameState = message.state;
+                            this.gameId = message.gameId;
+                            this.startGame();
+                            break;
+                            
+                        case 'move':
+                            this.handleOpponentMove(message.move);
+                            break;
+                            
+                        case 'game-over':
+                            this.gameState = message.state;
+                            this.gameState.gameOver = true;
+                            this.updateDisplay();
+                            setTimeout(() => this.showGameOverModal(), 500);
+                            break;
                     }
-                };
-                
-                this.ws.onmessage = (event) => {
-                    try {
-                        const message = JSON.parse(event.data);
-                        this.debug(`Received message: ${message.type}`);
-                        this.handleServerMessage(message);
-                    } catch (e) {
-                        this.debug(`Error parsing message: ${e.message}`);
-                    }
-                };
-                
-                this.ws.onerror = (error) => {
-                    this.debug(`WebSocket error: ${error}`);
-                };
-                
-                this.ws.onclose = (event) => {
-                    this.debug(`Connection closed: ${event.reason || 'Unknown reason'}`);
-                    
-                    // Update connection status
-                    const statusElement = document.querySelector('.connection-status');
-                    if (statusElement) statusElement.className = 'connection-status disconnected';
-                    
-                    // Try to reconnect if not closed intentionally
-                    if (this.connectionAttempts < this.maxConnectionAttempts) {
-                        this.connectionAttempts++;
-                        const delay = Math.min(3000, this.connectionAttempts * 1000);
-                        this.debug(`Reconnecting in ${delay}ms... (attempt ${this.connectionAttempts})`);
-                        setTimeout(() => this.connectToServer(), delay);
-                    }
-                };
+                } catch (e) {
+                    this.debug(`Error parsing message: ${e.message}`);
+                }
             }
 
             sendToServer(message) {
-                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    this.ws.send(JSON.stringify(message));
-                    return true;
-                }
-                this.debug("Failed to send message - connection not open");
-                return false;
-            }
-
-            handleServerMessage(message) {
-                switch(message.type) {
-                    case 'game-created':
-                        this.debug(`Game created: ${message.gameId}`);
-                        this.gameId = message.gameId;
-                        this.playerNumber = 1;
-                        this.isHost = true;
-                        this.isMyTurn = true;
-                        this.showInviteLink();
-                        break;
-                        
-                    case 'player-joined':
-                        this.debug(`Player joined: ${message.playerId}`);
-                        if (this.isHost && !this.gameStarted) {
-                            this.opponentConnected = true;
-                            
-                            // Update status
-                            const statusElement = document.querySelector('.connection-status');
-                            const waitingElement = document.getElementById('waitingStatus');
-                            if (statusElement) statusElement.className = 'connection-status connected';
-                            if (waitingElement) waitingElement.textContent = 'Player 2 connected! Starting game...';
-                            
-                            // Start game after delay
-                            setTimeout(() => {
-                                this.startGame();
-                                this.sendToServer({
-                                    type: 'game-started',
-                                    gameId: this.gameId,
-                                    state: this.gameState,
-                                    playerNumber: 2
-                                });
-                            }, 1000);
-                        }
-                        break;
-                        
-                    case 'game-started':
-                        this.debug('Game started message received');
-                        this.playerNumber = message.playerNumber;
-                        this.isHost = false;
-                        this.isMyTurn = (this.playerNumber === 1);
-                        this.gameState = message.state;
-                        this.gameId = message.gameId;
-                        this.startGame();
-                        break;
-                        
-                    case 'game-state':
-                        this.debug('Received game state update');
-                        this.gameState = message.state;
-                        this.updateDisplay();
-                        break;
-                        
-                    case 'move':
-                        this.debug(`Received move: ${message.move.type} at ${message.move.row},${message.move.col}`);
-                        this.handleOpponentMove(message.move);
-                        break;
-                        
-                    case 'game-over':
-                        this.debug('Game over received');
-                        this.gameState = message.state;
-                        this.gameState.gameOver = true;
-                        this.updateDisplay();
-                        setTimeout(() => this.showGameOverModal(), 500);
-                        break;
-                        
-                    case 'error':
-                        this.debug(`Server error: ${message.message}`);
-                        alert(`Game error: ${message.message}`);
-                        break;
-                }
+                this.ws.send(JSON.stringify(message));
+                this.debug(`Sent message: ${message.type}`);
             }
 
             createGame() {
                 this.gameId = this.generateId();
-                this.connectToServer();
+                this.ws.connect();
                 this.debug("Creating game: " + this.gameId);
-                
-                // Simulate server response
-                setTimeout(() => {
-                    this.handleServerMessage({ 
-                        type: 'game-created', 
-                        gameId: this.gameId 
-                    });
-                }, 300);
+                this.sendToServer({ type: 'create', gameId: this.gameId, playerId: this.playerId });
             }
 
             joinGame(gameId) {
                 this.gameId = gameId;
-                this.connectToServer();
+                this.ws.connect();
                 this.debug("Joining game: " + this.gameId);
-                
-                // Simulate server response
-                setTimeout(() => {
-                    this.handleServerMessage({ 
-                        type: 'player-joined', 
-                        playerId: this.playerId 
-                    });
-                    
-                    // Simulate game start after 1.5s
-                    setTimeout(() => {
-                        if (!this.gameStarted) {
-                            this.debug("Simulating game start for player 2");
-                            this.handleServerMessage({
-                                type: 'game-started',
-                                gameId: this.gameId,
-                                state: this.initializeGameState(),
-                                playerNumber: 2
-                            });
-                        }
-                    }, 1500);
-                }, 300);
+                this.sendToServer({ type: 'join', gameId: this.gameId, playerId: this.playerId });
             }
 
             startGame() {
@@ -1049,10 +1127,6 @@
         }
 
         function backToMenu() {
-            if (game.ws) {
-                game.ws.close();
-            }
-            
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('menuScreen').style.display = 'block';
             document.getElementById('inviteSection').style.display = 'none';
@@ -1065,6 +1139,8 @@
 
         // Initialize on page load
         window.addEventListener('load', () => {
+            createBackground();
+            
             const urlParams = new URLSearchParams(window.location.search);
             const joinGameId = urlParams.get('join');
             
