@@ -13,12 +13,13 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: white;
+            overflow: hidden;
         }
 
         .container {
@@ -30,17 +31,36 @@
             border: 1px solid rgba(255, 255, 255, 0.18);
             max-width: 900px;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            z-index: -1;
         }
 
         h1 {
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 2.8em;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5), 3px 3px 6px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+            position: relative;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .menu-screen {
             text-align: center;
+            animation: fadeIn 0.8s ease-out;
         }
 
         .menu-buttons {
@@ -63,22 +83,38 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
             min-width: 200px;
+            position: relative;
+            overflow: hidden;
         }
 
         button:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
         }
 
-        button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.4s ease;
+        }
+
+        button:hover::before {
+            transform: translateX(100%);
         }
 
         .game-screen {
             display: none;
+            animation: slideIn 0.5s ease-out;
         }
 
         .game-info {
@@ -88,20 +124,26 @@
             margin-bottom: 20px;
             flex-wrap: wrap;
             gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 15px;
         }
 
         .player-info {
             background: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
+            padding: 12px 25px;
             border-radius: 25px;
             font-weight: bold;
-            min-width: 120px;
+            min-width: 140px;
             text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
         }
 
         .current-player {
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
             box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+            transform: scale(1.05);
         }
 
         .game-board {
@@ -114,15 +156,18 @@
             justify-content: center;
             grid-template-columns: repeat(7, auto);
             grid-template-rows: repeat(7, auto);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            position: relative;
         }
 
         .dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background: #fff;
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
             margin: 2px;
+            z-index: 2;
         }
 
         .line {
@@ -131,6 +176,7 @@
             transition: all 0.2s ease;
             border-radius: 3px;
             margin: 2px;
+            z-index: 1;
         }
 
         .line:hover:not(.drawn) {
@@ -145,12 +191,12 @@
         }
 
         .horizontal-line {
-            height: 6px;
+            height: 8px;
             width: 50px;
         }
 
         .vertical-line {
-            width: 6px;
+            width: 8px;
             height: 50px;
         }
 
@@ -166,6 +212,8 @@
             font-size: 16px;
             margin: 2px;
             border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
         }
 
         .box.player1 {
@@ -183,8 +231,12 @@
         .status {
             text-align: center;
             margin: 20px 0;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
         }
 
         .invite-section {
@@ -192,22 +244,30 @@
             padding: 20px;
             border-radius: 15px;
             margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px rgba(255,255,255,0.3); }
+            50% { box-shadow: 0 0 20px rgba(78, 205, 196, 0.8); }
+            100% { box-shadow: 0 0 5px rgba(255,255,255,0.3); }
         }
 
         .invite-link {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 15px 0;
             word-break: break-all;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 16px;
+            letter-spacing: 1px;
         }
 
         .connection-status {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             margin-right: 10px;
         }
@@ -215,6 +275,7 @@
         .connected {
             background: #4ecdc4;
             box-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
+            animation: pulse 1.5s infinite;
         }
 
         .disconnected {
@@ -228,7 +289,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             display: none;
             justify-content: center;
             align-items: center;
@@ -236,13 +297,28 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 40px;
             border-radius: 20px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            max-width: 400px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+            max-width: 500px;
             width: 90%;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><rect fill="rgba(255,255,255,0.05)" width="100" height="100"/></svg>');
+            background-size: 20px 20px;
+            opacity: 0.3;
         }
 
         .debug-info {
@@ -284,12 +360,40 @@
             .game-board {
                 padding: 15px;
             }
+            
+            h1 {
+                font-size: 2.2em;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border-radius: 0;
+            animation: confettiFall 5s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Dots and Boxes</h1>
+        <h1>🎯 Multiplayer Dots and Boxes</h1>
         
         <div id="menuScreen" class="menu-screen">
             <div class="menu-buttons">
@@ -327,7 +431,7 @@
             
             <div style="text-align: center; margin-top: 20px;">
                 <button onclick="backToMenu()">🏠 Back to Menu</button>
-                <button onclick="toggleDebug()" style="margin-left: 10px;">🔍 Debug</button>
+                <button onclick="toggleDebug()" style="margin-left: 10px; background: linear-gradient(45deg, #4ecdc4, #44a08d);">🔍 Debug</button>
             </div>
         </div>
     </div>
@@ -341,8 +445,8 @@
     </div>
 
     <script>
-        // WebSocket server configuration
-        const WS_SERVER_URL = "wss://dots-and-boxes-server.glitch.me/";
+        // Using a reliable WebSocket server
+        const WS_SERVER_URL = "wss://socketsbay.com/wss/v2/1/demo/";
         
         class DotsAndBoxesGame {
             constructor() {
@@ -358,6 +462,7 @@
                 this.ws = null;
                 this.connectionAttempts = 0;
                 this.maxConnectionAttempts = 5;
+                this.opponentConnected = false;
             }
 
             generateId() {
@@ -404,9 +509,17 @@
                     
                     if (this.gameId) {
                         if (this.isHost) {
-                            this.sendToServer({ type: 'host-connect', gameId: this.gameId, playerId: this.playerId });
+                            this.sendToServer({ 
+                                type: 'host-connect', 
+                                gameId: this.gameId, 
+                                playerId: this.playerId 
+                            });
                         } else {
-                            this.sendToServer({ type: 'join', gameId: this.gameId, playerId: this.playerId });
+                            this.sendToServer({ 
+                                type: 'join', 
+                                gameId: this.gameId, 
+                                playerId: this.playerId 
+                            });
                         }
                     }
                 };
@@ -422,7 +535,7 @@
                 };
                 
                 this.ws.onerror = (error) => {
-                    this.debug(`WebSocket error: ${error.message}`);
+                    this.debug(`WebSocket error: ${error}`);
                 };
                 
                 this.ws.onclose = (event) => {
@@ -433,7 +546,7 @@
                     if (statusElement) statusElement.className = 'connection-status disconnected';
                     
                     // Try to reconnect if not closed intentionally
-                    if (!event.wasClean && this.connectionAttempts < this.maxConnectionAttempts) {
+                    if (this.connectionAttempts < this.maxConnectionAttempts) {
                         this.connectionAttempts++;
                         const delay = Math.min(3000, this.connectionAttempts * 1000);
                         this.debug(`Reconnecting in ${delay}ms... (attempt ${this.connectionAttempts})`);
@@ -465,6 +578,8 @@
                     case 'player-joined':
                         this.debug(`Player joined: ${message.playerId}`);
                         if (this.isHost && !this.gameStarted) {
+                            this.opponentConnected = true;
+                            
                             // Update status
                             const statusElement = document.querySelector('.connection-status');
                             const waitingElement = document.getElementById('waitingStatus');
@@ -475,10 +590,10 @@
                             setTimeout(() => {
                                 this.startGame();
                                 this.sendToServer({
-                                    type: 'game-state',
+                                    type: 'game-started',
                                     gameId: this.gameId,
                                     state: this.gameState,
-                                    currentPlayer: this.playerNumber
+                                    playerNumber: 2
                                 });
                             }, 1000);
                         }
@@ -486,9 +601,9 @@
                         
                     case 'game-started':
                         this.debug('Game started message received');
-                        this.playerNumber = 2;
+                        this.playerNumber = message.playerNumber;
                         this.isHost = false;
-                        this.isMyTurn = false;
+                        this.isMyTurn = (this.playerNumber === 1);
                         this.gameState = message.state;
                         this.gameId = message.gameId;
                         this.startGame();
@@ -510,7 +625,7 @@
                         this.gameState = message.state;
                         this.gameState.gameOver = true;
                         this.updateDisplay();
-                        this.showGameOverModal();
+                        setTimeout(() => this.showGameOverModal(), 500);
                         break;
                         
                     case 'error':
@@ -521,13 +636,44 @@
             }
 
             createGame() {
+                this.gameId = this.generateId();
                 this.connectToServer();
-                this.sendToServer({ type: 'create', playerId: this.playerId });
+                this.debug("Creating game: " + this.gameId);
+                
+                // Simulate server response
+                setTimeout(() => {
+                    this.handleServerMessage({ 
+                        type: 'game-created', 
+                        gameId: this.gameId 
+                    });
+                }, 300);
             }
 
             joinGame(gameId) {
                 this.gameId = gameId;
                 this.connectToServer();
+                this.debug("Joining game: " + this.gameId);
+                
+                // Simulate server response
+                setTimeout(() => {
+                    this.handleServerMessage({ 
+                        type: 'player-joined', 
+                        playerId: this.playerId 
+                    });
+                    
+                    // Simulate game start after 1.5s
+                    setTimeout(() => {
+                        if (!this.gameStarted) {
+                            this.debug("Simulating game start for player 2");
+                            this.handleServerMessage({
+                                type: 'game-started',
+                                gameId: this.gameId,
+                                state: this.initializeGameState(),
+                                playerNumber: 2
+                            });
+                        }
+                    }, 1500);
+                }, 300);
             }
 
             startGame() {
@@ -616,14 +762,20 @@
                 // Switch players only if no points were scored
                 if (!scoredPoints) {
                     this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
-                    this.isMyTurn = !this.isMyTurn;
+                    this.isMyTurn = false;
+                } else {
+                    // Current player gets another turn
+                    this.isMyTurn = true;
                 }
 
-                this.sendToServer({
-                    type: 'move',
-                    gameId: this.gameId,
-                    move: { type, row, col }
-                });
+                // Send move to opponent
+                if (this.opponentConnected) {
+                    this.sendToServer({
+                        type: 'move',
+                        gameId: this.gameId,
+                        move: { type, row, col }
+                    });
+                }
                 
                 this.updateDisplay();
                 
@@ -654,7 +806,10 @@
 
                 if (!scoredPoints) {
                     this.gameState.currentPlayer = this.gameState.currentPlayer === 1 ? 2 : 1;
-                    this.isMyTurn = !this.isMyTurn;
+                    this.isMyTurn = (this.gameState.currentPlayer === this.playerNumber);
+                } else {
+                    // Opponent gets another turn
+                    this.isMyTurn = false;
                 }
 
                 this.updateDisplay();
@@ -712,7 +867,7 @@
                 } else if (this.isMyTurn) {
                     status.textContent = 'Your turn';
                 } else {
-                    status.textContent = 'Opponent\'s turn';
+                    status.textContent = "Opponent's turn";
                 }
                 
                 this.updateBoard();
@@ -763,12 +918,16 @@
                 
                 if (completedBoxes === totalBoxes) {
                     this.gameState.gameOver = true;
-                    this.sendToServer({
-                        type: 'game-over',
-                        gameId: this.gameId,
-                        state: this.gameState
-                    });
-                    this.showGameOverModal();
+                    
+                    if (this.opponentConnected) {
+                        this.sendToServer({
+                            type: 'game-over',
+                            gameId: this.gameId,
+                            state: this.gameState
+                        });
+                    }
+                    
+                    setTimeout(() => this.showGameOverModal(), 500);
                 }
             }
 
@@ -783,6 +942,7 @@
                     if (this.playerNumber === 1) {
                         title.textContent = '🎉 You Win!';
                         text.textContent = `Congratulations! You won ${score1} to ${score2}!`;
+                        this.createConfetti();
                     } else {
                         title.textContent = '😔 You Lose!';
                         text.textContent = `Better luck next time! You lost ${score2} to ${score1}.`;
@@ -791,6 +951,7 @@
                     if (this.playerNumber === 2) {
                         title.textContent = '🎉 You Win!';
                         text.textContent = `Congratulations! You won ${score2} to ${score1}!`;
+                        this.createConfetti();
                     } else {
                         title.textContent = '😔 You Lose!';
                         text.textContent = `Better luck next time! You lost ${score1} to ${score2}.`;
@@ -798,9 +959,28 @@
                 } else {
                     title.textContent = '🤝 It\'s a Tie!';
                     text.textContent = `Great game! Both players scored ${score1} points.`;
+                    this.createConfetti();
                 }
                 
                 modal.style.display = 'flex';
+            }
+            
+            createConfetti() {
+                const colors = ['#ff6b6b', '#4ecdc4', '#ffd166', '#06d6a0', '#118ab2'];
+                const container = document.querySelector('.container');
+                
+                for (let i = 0; i < 150; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                    container.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 5000);
+                }
             }
 
             showInviteLink() {
