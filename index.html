@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dots & Boxes - Cartoonish Multiplayer</title>
+    <title>Dots & Boxes - Real-Time Multiplayer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
         }
 
         body {
@@ -26,11 +26,19 @@
         .game-container {
             width: 100%;
             max-width: 900px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 25px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
             overflow: hidden;
             position: relative;
+            border: 8px solid #ff6b6b;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
         }
 
         .header {
@@ -70,7 +78,7 @@
             left: 0;
             width: 100%;
             height: 20px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="rgba(255,255,255,0.9)"/></svg>');
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="rgba(255,255,255,0.95)"/></svg>');
             background-size: 100% 100%;
         }
 
@@ -503,16 +511,69 @@
         .floating-delay-3 {
             animation-delay: 1.5s;
         }
+        
+        .menu-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 400px;
+            margin: 30px auto;
+        }
+        
+        .menu-screen h2 {
+            font-size: 2.5rem;
+            color: #6a11cb;
+            margin-bottom: 20px;
+        }
+        
+        .menu-screen p {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="game-container floating">
         <div class="header floating-delay-1">
             <h1><i class="fas fa-dice-d20"></i> Dots & Boxes</h1>
-            <p>Cartoonish Multiplayer - Play with friends in real-time!</p>
+            <p>Real-Time Multiplayer - Play with friends anywhere!</p>
         </div>
         
-        <div class="game-content">
+        <div id="menuScreen" class="menu-screen">
+            <h2><i class="fas fa-gamepad"></i> Play with Friends</h2>
+            <p>Create a new game or join an existing one to challenge your friends</p>
+            
+            <div class="menu-buttons">
+                <button id="createGameBtn" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Create New Game
+                </button>
+                <button id="joinGameBtn" class="btn btn-outline">
+                    <i class="fas fa-link"></i> Join Existing Game
+                </button>
+            </div>
+            
+            <div id="inviteSection" class="invite-section" style="display: none;">
+                <div class="invite-title">
+                    <i class="fas fa-share-alt"></i> Share this game link
+                </div>
+                <div id="inviteLink" class="invite-link">Generating link...</div>
+                <button id="copyBtn" class="btn btn-primary">
+                    <i class="fas fa-copy"></i> Copy Link
+                </button>
+                <div class="status" style="margin-top: 20px; padding: 15px; border-radius: 10px; background: #f8f9fc;">
+                    <span class="connection-status connected"></span>
+                    <span id="waitingStatus">Waiting for player 2 to join...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="game-content" style="display: none;">
             <div class="player-info-section floating-delay-2">
                 <div class="player-card player1 active" id="player1Info">
                     <div class="player-icon">
@@ -526,7 +587,7 @@
                 
                 <div class="player-card player2" id="player2Info">
                     <div class="player-icon">
-                        <i class="fas fa-robot"></i>
+                        <i class="fas fa-user"></i>
                     </div>
                     <div class="player-details">
                         <div class="player-name">Player 2</div>
@@ -548,8 +609,8 @@
                     <div class="invite-title">
                         <i class="fas fa-share-alt"></i> Share this game
                     </div>
-                    <div class="invite-link" id="inviteLink">https://dots-and-boxes/game/ABC123</div>
-                    <button class="btn btn-primary" id="copyBtn">
+                    <div class="invite-link" id="watchLink">https://dots-and-boxes/game/ABC123</div>
+                    <button class="btn btn-primary" id="copyWatchLinkBtn">
                         <i class="fas fa-copy"></i> Copy Link
                     </button>
                 </div>
@@ -601,13 +662,21 @@
             scores: [0, 0],
             currentPlayer: 1,
             gameOver: false,
-            gameId: 'ABC123',
-            isHost: true,
-            playerNumber: 1
+            gameId: null,
+            isHost: false,
+            playerNumber: null
         };
 
         // DOM Elements
+        const menuScreen = document.getElementById('menuScreen');
+        const gameScreen = document.getElementById('gameScreen');
         const gameBoard = document.getElementById('gameBoard');
+        const createGameBtn = document.getElementById('createGameBtn');
+        const joinGameBtn = document.getElementById('joinGameBtn');
+        const inviteSection = document.getElementById('inviteSection');
+        const inviteLink = document.getElementById('inviteLink');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyWatchLinkBtn = document.getElementById('copyWatchLinkBtn');
         const player1Info = document.getElementById('player1Info');
         const player2Info = document.getElementById('player2Info');
         const player1Score = document.getElementById('player1Score');
@@ -620,22 +689,76 @@
         const gameOverText = document.getElementById('gameOverText');
         const playAgainBtn = document.getElementById('playAgainBtn');
         const gameIdDisplay = document.getElementById('gameIdDisplay');
-        const inviteLink = document.getElementById('inviteLink');
-        const copyBtn = document.getElementById('copyBtn');
+        const watchLink = document.getElementById('watchLink');
+        const waitingStatus = document.getElementById('waitingStatus');
 
         // Initialize the game
         function init() {
-            createGameBoard();
-            updateGameDisplay();
-            
-            // Add event listeners
-            menuBtn.addEventListener('click', () => {
-                window.location.href = "menu.html"; // Replace with actual menu navigation
-            });
-            
+            createGameBtn.addEventListener('click', createGame);
+            joinGameBtn.addEventListener('click', joinGamePrompt);
+            copyBtn.addEventListener('click', copyInviteLink);
+            copyWatchLinkBtn.addEventListener('click', copyWatchLink);
+            menuBtn.addEventListener('click', backToMenu);
             newGameBtn.addEventListener('click', startNewGame);
             playAgainBtn.addEventListener('click', startNewGame);
-            copyBtn.addEventListener('click', copyInviteLink);
+        }
+
+        // Create a new game
+        function createGame() {
+            gameState.isHost = true;
+            gameState.playerNumber = 1;
+            gameState.gameId = generateGameId();
+            
+            // Show invite section
+            inviteSection.style.display = 'block';
+            inviteLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
+            gameIdDisplay.textContent = gameState.gameId;
+            watchLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
+            
+            // Simulate waiting for player 2
+            waitingStatus.textContent = "Waiting for player 2... (simulated)";
+            
+            setTimeout(() => {
+                waitingStatus.innerHTML = '<span class="connection-status connected"></span> Player 2 connected! Starting game...';
+                
+                setTimeout(() => {
+                    startGame();
+                }, 1500);
+            }, 3000);
+        }
+
+        // Join a game
+        function joinGamePrompt() {
+            const gameId = prompt('Enter game ID to join:');
+            if (gameId) {
+                gameState.gameId = gameId;
+                gameState.isHost = false;
+                gameState.playerNumber = 2;
+                
+                // Simulate connecting to game
+                inviteSection.style.display = 'block';
+                inviteLink.textContent = "Connecting to game...";
+                waitingStatus.textContent = "Connecting to host... (simulated)";
+                
+                setTimeout(() => {
+                    inviteLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
+                    waitingStatus.innerHTML = '<span class="connection-status connected"></span> Connected! Starting game...';
+                    
+                    setTimeout(() => {
+                        startGame();
+                    }, 1000);
+                }, 2000);
+            }
+        }
+
+        // Start the game
+        function startGame() {
+            menuScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            gameIdDisplay.textContent = gameState.gameId;
+            watchLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
+            createGameBoard();
+            updateGameDisplay();
         }
 
         // Create the game board
@@ -685,18 +808,23 @@
 
         // Make a move
         function makeMove(type, row, col) {
-            if (gameState.gameOver || gameState.currentPlayer !== gameState.playerNumber) {
+            if (!gameState.isHost && gameState.currentPlayer !== gameState.playerNumber) {
+                gameStatus.textContent = "It's not your turn!";
+                setTimeout(() => {
+                    updateGameDisplay();
+                }, 1000);
                 return;
             }
 
             const lines = type === 'horizontal' ? 
                 gameState.horizontalLines : gameState.verticalLines;
             
-            if (lines[row][col]) return;
-            
+            if (lines[row][col]) {
+                return;
+            }
+
             lines[row][col] = true;
             
-            // Check for completed boxes
             const completedBoxes = checkForCompletedBoxes(type, row, col);
             let scoredPoints = completedBoxes.length > 0;
             
@@ -704,8 +832,7 @@
                 gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
                 gameState.scores[gameState.currentPlayer - 1]++;
             });
-            
-            // Switch player if no points were scored
+
             if (!scoredPoints) {
                 gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
                 
@@ -715,10 +842,7 @@
                 }
             }
             
-            // Check if game is over
             checkGameOver();
-            
-            // Update display
             updateGameDisplay();
         }
 
@@ -806,10 +930,7 @@
                 }
             }
             
-            // Check if game is over
             checkGameOver();
-            
-            // Update display
             updateGameDisplay();
         }
 
@@ -934,7 +1055,7 @@
             } else if (gameState.currentPlayer === gameState.playerNumber) {
                 gameStatus.textContent = 'Your turn - make a move!';
             } else {
-                gameStatus.textContent = 'Player 2 is thinking...';
+                gameStatus.textContent = "Opponent's turn...";
             }
             
             // Update board
@@ -995,6 +1116,17 @@
                     console.error('Failed to copy: ', err);
                 });
         }
+        
+        // Copy watch link
+        function copyWatchLink() {
+            navigator.clipboard.writeText(watchLink.textContent)
+                .then(() => {
+                    alert('Game link copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        }
 
         // Start a new game
         function startNewGame() {
@@ -1011,11 +1143,20 @@
             // Generate new game ID
             gameState.gameId = generateGameId();
             gameIdDisplay.textContent = gameState.gameId;
-            inviteLink.textContent = `https://dots-and-boxes/game/${gameState.gameId}`;
+            inviteLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
+            watchLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
             
             // Update display
             updateGameDisplay();
             createGameBoard();
+        }
+
+        // Go back to main menu
+        function backToMenu() {
+            gameScreen.style.display = 'none';
+            menuScreen.style.display = 'block';
+            inviteSection.style.display = 'none';
+            gameOverModal.classList.remove('active');
         }
 
         // Generate a random game ID
@@ -1029,7 +1170,19 @@
         }
 
         // Initialize the game when page loads
-        window.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('DOMContentLoaded', () => {
+            init();
+            
+            // Check if we're joining a game from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinGameId = urlParams.get('join');
+            if (joinGameId) {
+                gameState.gameId = joinGameId;
+                gameState.isHost = false;
+                gameState.playerNumber = 2;
+                startGame();
+            }
+        });
     </script>
 </body>
 </html>
