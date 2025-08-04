@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elegant Dots & Boxes</title>
+    <title>Dots & Boxes - Cartoonish Multiplayer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -14,24 +14,22 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #333;
             padding: 20px;
+            overflow-x: hidden;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-width: 900px;
+        .game-container {
             width: 100%;
-            display: flex;
-            flex-direction: column;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 25px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
             position: relative;
         }
 
@@ -41,17 +39,25 @@
             padding: 25px 30px;
             text-align: center;
             position: relative;
+            z-index: 10;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            font-weight: 600;
+            font-size: 2.8rem;
+            font-weight: 800;
             margin-bottom: 10px;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transform: translateY(0);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .header h1:hover {
+            transform: translateY(-5px);
         }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             opacity: 0.9;
             max-width: 600px;
             margin: 0 auto;
@@ -64,52 +70,60 @@
             left: 0;
             width: 100%;
             height: 20px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="white"/></svg>');
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="rgba(255,255,255,0.9)"/></svg>');
             background-size: 100% 100%;
         }
 
-        .game-container {
+        .game-content {
             display: flex;
             flex-wrap: wrap;
             padding: 30px;
         }
 
-        .panel {
+        .player-info-section {
             flex: 1;
             min-width: 300px;
             padding: 20px;
         }
 
-        .player-info {
+        .player-card {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            border-radius: 12px;
-            background: #f8f9fc;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: scale(1);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .player-info.active {
-            background: linear-gradient(135deg, #6a11cb20 0%, #2575fc20 100%);
-            border-left: 4px solid #6a11cb;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.15);
+        .player-card.active {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            transform: scale(1.03);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            z-index: 2;
+        }
+
+        .player-card.player2 {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        }
+
+        .player-card.player2.active {
+            background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
         }
 
         .player-icon {
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
-            color: white;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 10px rgba(106, 17, 203, 0.3);
+            margin-right: 20px;
+            font-size: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .player-details {
@@ -117,111 +131,141 @@
         }
 
         .player-name {
-            font-weight: 600;
-            font-size: 1.2rem;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: #333;
             margin-bottom: 5px;
         }
 
         .player-score {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: #6a11cb;
         }
 
         .game-status {
             background: white;
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 20px;
+            padding: 25px;
             margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             text-align: center;
+            transform: translateY(0);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .game-status:hover {
+            transform: translateY(-5px);
         }
 
         .status-text {
-            font-size: 1.2rem;
-            font-weight: 500;
+            font-size: 1.4rem;
+            font-weight: 600;
             color: #6a11cb;
             margin-bottom: 15px;
         }
 
         .connection-status {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 15px;
+            height: 15px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 10px;
+            animation: pulse 1.5s infinite;
         }
 
         .connected {
             background: #4cd964;
-            box-shadow: 0 0 8px rgba(76, 217, 100, 0.7);
+            box-shadow: 0 0 12px rgba(76, 217, 100, 0.8);
         }
 
         .disconnected {
             background: #ff3b30;
-            box-shadow: 0 0 8px rgba(255, 59, 48, 0.7);
+            box-shadow: 0 0 12px rgba(255, 59, 48, 0.8);
+        }
+
+        .game-board-section {
+            flex: 1.5;
+            min-width: 300px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .game-board {
             background: #f8f9fc;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 30px;
             display: grid;
             grid-template-columns: repeat(7, auto);
             grid-template-rows: repeat(7, auto);
             gap: 0;
             justify-content: center;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transform: scale(1);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .game-board:hover {
+            transform: scale(1.02);
         }
 
         .dot {
-            width: 12px;
-            height: 12px;
-            background: #6a11cb;
+            width: 15px;
+            height: 15px;
+            background: #ff6b6b;
             border-radius: 50%;
             margin: 2px;
-            box-shadow: 0 0 8px rgba(106, 17, 203, 0.3);
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            animation: pulse 2s infinite;
         }
 
         .line {
             background: #d1d8e6;
             cursor: pointer;
-            transition: all 0.2s ease;
-            border-radius: 3px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 4px;
             margin: 2px;
         }
 
         .line:hover:not(.drawn) {
             background: #a5b1d0;
-            transform: scale(1.05);
+            transform: scale(1.1);
         }
 
         .line.drawn {
             background: #6a11cb;
             cursor: default;
-            box-shadow: 0 0 8px rgba(106, 17, 203, 0.3);
+            box-shadow: 0 0 10px rgba(106, 17, 203, 0.4);
+            animation: drawLine 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes drawLine {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .horizontal-line {
-            height: 6px;
-            width: 50px;
+            height: 8px;
+            width: 60px;
         }
 
         .vertical-line {
-            width: 6px;
-            height: 50px;
+            width: 8px;
+            height: 60px;
         }
 
         .box {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 1.2rem;
             margin: 2px;
             background: #f0f3f9;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
@@ -230,90 +274,97 @@
         .box.player1 {
             background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
             color: #d32f2f;
-            animation: claimBox 0.4s ease-out;
+            animation: claimBox 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .box.player2 {
             background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
             color: #1976d2;
-            animation: claimBox 0.4s ease-out;
+            animation: claimBox 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes claimBox {
-            0% { transform: scale(0.9); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% { transform: scale(0.8) rotate(-10deg); opacity: 0; }
+            70% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            padding: 20px;
-            background: #f8f9fc;
-            border-top: 1px solid #eef2f7;
+            gap: 20px;
+            padding: 30px;
+            width: 100%;
         }
 
         .btn {
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 600;
+            padding: 16px 35px;
+            border-radius: 50px;
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
+            gap: 12px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: none;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(0);
+        }
+
+        .btn:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-2px);
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(106, 17, 203, 0.4);
         }
 
         .btn-outline {
             background: white;
-            border: 2px solid #6a11cb;
+            border: 3px solid #6a11cb;
             color: #6a11cb;
-        }
-
-        .btn-outline:hover {
-            background: #f0f3f9;
         }
 
         .invite-section {
             background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transform: scale(1);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .invite-section:hover {
+            transform: scale(1.02);
         }
 
         .invite-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
             color: #6a11cb;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
         .invite-link {
             background: #f8f9fc;
-            padding: 12px 15px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 15px;
             font-family: monospace;
             word-break: break-all;
-            margin-bottom: 15px;
-            border: 1px solid #eef2f7;
-            font-size: 0.95rem;
+            margin-bottom: 20px;
+            border: 2px dashed #d1d8e6;
+            font-size: 1.1rem;
         }
 
         .modal {
@@ -322,14 +373,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .modal.active {
@@ -339,185 +390,200 @@
 
         .modal-content {
             background: white;
-            border-radius: 20px;
-            padding: 40px;
+            border-radius: 30px;
+            padding: 50px;
             text-align: center;
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
-            transform: translateY(20px);
-            transition: transform 0.4s ease;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
         }
 
         .modal.active .modal-content {
-            transform: translateY(0);
+            transform: scale(1);
+            opacity: 1;
         }
 
         .modal h2 {
-            font-size: 2.2rem;
-            margin-bottom: 20px;
+            font-size: 3rem;
+            margin-bottom: 25px;
             color: #6a11cb;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .modal p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
+            font-size: 1.5rem;
+            margin-bottom: 40px;
             line-height: 1.6;
+            color: #333;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #ff6b6b;
+            border-radius: 0;
+            animation: confettiFall 5s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
 
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
             
-            .game-container {
+            .game-content {
                 flex-direction: column;
                 padding: 20px;
             }
             
             .game-board {
-                padding: 15px;
+                padding: 20px;
             }
             
             .horizontal-line {
-                width: 35px;
+                width: 40px;
             }
             
             .vertical-line {
-                height: 35px;
+                height: 40px;
             }
             
             .box {
-                width: 35px;
-                height: 35px;
-                font-size: 14px;
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .player-card {
+                padding: 15px;
+            }
+            
+            .player-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
             }
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        
+        /* Floating animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
         }
-
-        .game-screen {
-            display: none;
-            animation: fadeIn 0.5s ease;
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-delay-1 {
+            animation-delay: 0.5s;
+        }
+        
+        .floating-delay-2 {
+            animation-delay: 1s;
+        }
+        
+        .floating-delay-3 {
+            animation-delay: 1.5s;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-gamepad"></i> Dots & Boxes</h1>
-            <p>Play with a friend in real-time - claim boxes and outsmart your opponent!</p>
+    <div class="game-container floating">
+        <div class="header floating-delay-1">
+            <h1><i class="fas fa-dice-d20"></i> Dots & Boxes</h1>
+            <p>Cartoonish Multiplayer - Play with friends in real-time!</p>
         </div>
         
-        <div id="menuScreen" class="panel">
-            <div style="text-align: center; padding: 40px 20px;">
-                <div style="max-width: 500px; margin: 0 auto;">
-                    <h2 style="font-size: 2rem; color: #6a11cb; margin-bottom: 30px;">Start Playing</h2>
-                    <p style="font-size: 1.1rem; margin-bottom: 40px; color: #555;">
-                        Create a new game or join an existing one to challenge your friends in this classic strategy game.
-                    </p>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 20px; max-width: 300px; margin: 0 auto;">
-                        <button id="createBtn" class="btn btn-primary">
-                            <i class="fas fa-plus-circle"></i> Create New Game
-                        </button>
-                        <button id="joinBtn" class="btn btn-outline">
-                            <i class="fas fa-link"></i> Join Existing Game
-                        </button>
+        <div class="game-content">
+            <div class="player-info-section floating-delay-2">
+                <div class="player-card player1 active" id="player1Info">
+                    <div class="player-icon">
+                        <i class="fas fa-crown"></i>
                     </div>
-                    
-                    <div id="inviteSection" style="margin-top: 40px; display: none;">
-                        <div class="invite-title">
-                            <i class="fas fa-share-alt"></i> Share this game link
-                        </div>
-                        <div id="inviteLink" class="invite-link">Generating link...</div>
-                        <button id="copyBtn" class="btn btn-primary" style="width: 100%;">
-                            <i class="fas fa-copy"></i> Copy Link
-                        </button>
-                        <div class="status" style="margin-top: 20px; padding: 15px; border-radius: 10px; background: #f8f9fc;">
-                            <span class="connection-status disconnected"></span>
-                            <span id="waitingStatus">Waiting for player 2 to join...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="gameScreen" class="game-screen">
-            <div class="game-container">
-                <div class="panel">
-                    <div class="player-info" id="player1Info">
-                        <div class="player-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="player-details">
-                            <div class="player-name">Player 1 (You)</div>
-                            <div class="player-score" id="player1Score">0</div>
-                        </div>
-                    </div>
-                    
-                    <div class="player-info" id="player2Info">
-                        <div class="player-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="player-details">
-                            <div class="player-name">Player 2</div>
-                            <div class="player-score" id="player2Score">0</div>
-                        </div>
-                    </div>
-                    
-                    <div class="game-status">
-                        <div class="status-text">
-                            <span class="connection-status connected"></span>
-                            <span id="gameStatus">Your turn - make a move</span>
-                        </div>
-                        <div style="font-size: 0.9rem; color: #777;">
-                            Game ID: <span id="gameIdDisplay">ABC123</span>
-                        </div>
-                    </div>
-                    
-                    <div class="invite-section">
-                        <div class="invite-title">
-                            <i class="fas fa-users"></i> Playing with a friend?
-                        </div>
-                        <p style="margin-bottom: 15px; color: #555;">
-                            Share this game ID so others can watch your match:
-                        </p>
-                        <div class="invite-link" id="watchLink">ABC123</div>
+                    <div class="player-details">
+                        <div class="player-name">Player 1 (You)</div>
+                        <div class="player-score" id="player1Score">0</div>
                     </div>
                 </div>
                 
-                <div class="panel">
-                    <div class="game-board" id="gameBoard"></div>
+                <div class="player-card player2" id="player2Info">
+                    <div class="player-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">Player 2</div>
+                        <div class="player-score" id="player2Score">0</div>
+                    </div>
+                </div>
+                
+                <div class="game-status floating-delay-3">
+                    <div class="status-text">
+                        <span class="connection-status connected"></span>
+                        <span id="gameStatus">Your turn - make a move!</span>
+                    </div>
+                    <div style="font-size: 1rem; color: #777; margin-top: 15px;">
+                        Game ID: <strong id="gameIdDisplay">ABC123</strong>
+                    </div>
+                </div>
+                
+                <div class="invite-section">
+                    <div class="invite-title">
+                        <i class="fas fa-share-alt"></i> Share this game
+                    </div>
+                    <div class="invite-link" id="inviteLink">https://dots-and-boxes/game/ABC123</div>
+                    <button class="btn btn-primary" id="copyBtn">
+                        <i class="fas fa-copy"></i> Copy Link
+                    </button>
                 </div>
             </div>
             
-            <div class="controls">
-                <button id="menuBtn" class="btn btn-outline">
-                    <i class="fas fa-home"></i> Main Menu
-                </button>
-                <button id="newGameBtn" class="btn btn-primary">
-                    <i class="fas fa-redo"></i> New Game
-                </button>
+            <div class="game-board-section">
+                <div class="game-board" id="gameBoard">
+                    <!-- Game board will be generated here -->
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-outline" id="menuBtn">
+                        <i class="fas fa-home"></i> Menu
+                    </button>
+                    <button class="btn btn-primary" id="newGameBtn">
+                        <i class="fas fa-redo"></i> New Game
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="gameOverModal" class="modal">
+    <div class="modal" id="gameOverModal">
         <div class="modal-content">
-            <h2 id="gameOverTitle"><i class="fas fa-trophy"></i> Game Completed</h2>
-            <p id="gameOverText"></p>
-            <button id="playAgainBtn" class="btn btn-primary" style="margin-top: 20px;">
-                <i class="fas fa-redo"></i> Play Again
+            <h2 id="gameOverTitle"><i class="fas fa-trophy"></i> Victory!</h2>
+            <p id="gameOverText">Congratulations! You won the game!</p>
+            <button class="btn btn-primary" id="playAgainBtn">
+                <i class="fas fa-play"></i> Play Again
             </button>
         </div>
     </div>
 
     <script>
-        // Game state and configuration
+        // Game configuration
         const gameConfig = {
             gridSize: 4,
             players: ['Player 1', 'Player 2'],
@@ -528,27 +594,20 @@
         };
 
         // Game state
-        let gameState = {
+        const gameState = {
             horizontalLines: Array(gameConfig.gridSize).fill().map(() => Array(gameConfig.gridSize - 1).fill(false)),
             verticalLines: Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize).fill(false)),
             boxes: Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize - 1).fill(0)),
             scores: [0, 0],
             currentPlayer: 1,
             gameOver: false,
-            gameId: null,
-            isHost: false,
-            playerNumber: null
+            gameId: 'ABC123',
+            isHost: true,
+            playerNumber: 1
         };
 
         // DOM Elements
-        const menuScreen = document.getElementById('menuScreen');
-        const gameScreen = document.getElementById('gameScreen');
         const gameBoard = document.getElementById('gameBoard');
-        const createBtn = document.getElementById('createBtn');
-        const joinBtn = document.getElementById('joinBtn');
-        const copyBtn = document.getElementById('copyBtn');
-        const inviteSection = document.getElementById('inviteSection');
-        const inviteLink = document.getElementById('inviteLink');
         const player1Info = document.getElementById('player1Info');
         const player2Info = document.getElementById('player2Info');
         const player1Score = document.getElementById('player1Score');
@@ -561,69 +620,22 @@
         const gameOverText = document.getElementById('gameOverText');
         const playAgainBtn = document.getElementById('playAgainBtn');
         const gameIdDisplay = document.getElementById('gameIdDisplay');
-        const watchLink = document.getElementById('watchLink');
+        const inviteLink = document.getElementById('inviteLink');
+        const copyBtn = document.getElementById('copyBtn');
 
         // Initialize the game
         function init() {
-            createBtn.addEventListener('click', createGame);
-            joinBtn.addEventListener('click', joinGamePrompt);
-            copyBtn.addEventListener('click', copyInviteLink);
-            menuBtn.addEventListener('click', backToMenu);
-            newGameBtn.addEventListener('click', startNewGame);
-            playAgainBtn.addEventListener('click', startNewGame);
-        }
-
-        // Create a new game
-        function createGame() {
-            // Generate game ID
-            gameState.gameId = generateGameId();
-            gameState.isHost = true;
-            gameState.playerNumber = 1;
-            
-            // Show invite section
-            inviteSection.style.display = 'block';
-            inviteLink.textContent = `${window.location.href}?join=${gameState.gameId}`;
-            watchLink.textContent = gameState.gameId;
-            
-            // Simulate waiting for player 2
-            setTimeout(() => {
-                startGame();
-            }, 3000);
-        }
-
-        // Join a game
-        function joinGamePrompt() {
-            const gameId = prompt('Enter game ID to join:');
-            if (gameId) {
-                gameState.gameId = gameId;
-                gameState.isHost = false;
-                gameState.playerNumber = 2;
-                startGame();
-            }
-        }
-
-        // Start the game
-        function startGame() {
-            menuScreen.style.display = 'none';
-            gameScreen.style.display = 'block';
-            
-            // Set game ID display
-            gameIdDisplay.textContent = gameState.gameId;
-            watchLink.textContent = gameState.gameId;
-            
-            // Create game board
             createGameBoard();
             updateGameDisplay();
-        }
-
-        // Generate a random game ID
-        function generateGameId() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let id = '';
-            for (let i = 0; i < 6; i++) {
-                id += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return id;
+            
+            // Add event listeners
+            menuBtn.addEventListener('click', () => {
+                window.location.href = "menu.html"; // Replace with actual menu navigation
+            });
+            
+            newGameBtn.addEventListener('click', startNewGame);
+            playAgainBtn.addEventListener('click', startNewGame);
+            copyBtn.addEventListener('click', copyInviteLink);
         }
 
         // Create the game board
@@ -673,8 +685,7 @@
 
         // Make a move
         function makeMove(type, row, col) {
-            if (gameState.gameOver || 
-                (gameState.playerNumber !== gameState.currentPlayer)) {
+            if (gameState.gameOver || gameState.currentPlayer !== gameState.playerNumber) {
                 return;
             }
 
@@ -697,6 +708,102 @@
             // Switch player if no points were scored
             if (!scoredPoints) {
                 gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                
+                // Simulate opponent move after a short delay
+                if (!gameState.gameOver && gameState.currentPlayer !== gameState.playerNumber) {
+                    setTimeout(makeOpponentMove, 1000);
+                }
+            }
+            
+            // Check if game is over
+            checkGameOver();
+            
+            // Update display
+            updateGameDisplay();
+        }
+
+        // Simulate an opponent move
+        function makeOpponentMove() {
+            if (gameState.gameOver) return;
+            
+            // Find an available move
+            let moveFound = false;
+            
+            // Try to find a move that completes a box
+            for (let row = 0; row < gameConfig.gridSize && !moveFound; row++) {
+                for (let col = 0; col < gameConfig.gridSize - 1 && !moveFound; col++) {
+                    if (!gameState.horizontalLines[row][col]) {
+                        // Check if this move would complete a box
+                        const completedBoxes = checkForCompletedBoxes('horizontal', row, col);
+                        if (completedBoxes.length > 0) {
+                            gameState.horizontalLines[row][col] = true;
+                            completedBoxes.forEach(([boxRow, boxCol]) => {
+                                gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
+                                gameState.scores[gameState.currentPlayer - 1]++;
+                            });
+                            moveFound = true;
+                        }
+                    }
+                }
+            }
+            
+            // Try vertical lines
+            for (let row = 0; row < gameConfig.gridSize - 1 && !moveFound; row++) {
+                for (let col = 0; col < gameConfig.gridSize && !moveFound; col++) {
+                    if (!gameState.verticalLines[row][col]) {
+                        // Check if this move would complete a box
+                        const completedBoxes = checkForCompletedBoxes('vertical', row, col);
+                        if (completedBoxes.length > 0) {
+                            gameState.verticalLines[row][col] = true;
+                            completedBoxes.forEach(([boxRow, boxCol]) => {
+                                gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
+                                gameState.scores[gameState.currentPlayer - 1]++;
+                            });
+                            moveFound = true;
+                        }
+                    }
+                }
+            }
+            
+            // If no box-completing move found, make a random move
+            if (!moveFound) {
+                const availableMoves = [];
+                
+                // Find all available horizontal moves
+                for (let row = 0; row < gameConfig.gridSize; row++) {
+                    for (let col = 0; col < gameConfig.gridSize - 1; col++) {
+                        if (!gameState.horizontalLines[row][col]) {
+                            availableMoves.push({type: 'horizontal', row, col});
+                        }
+                    }
+                }
+                
+                // Find all available vertical moves
+                for (let row = 0; row < gameConfig.gridSize - 1; row++) {
+                    for (let col = 0; col < gameConfig.gridSize; col++) {
+                        if (!gameState.verticalLines[row][col]) {
+                            availableMoves.push({type: 'vertical', row, col});
+                        }
+                    }
+                }
+                
+                // Pick a random move
+                if (availableMoves.length > 0) {
+                    const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                    gameState[randomMove.type === 'horizontal' ? 'horizontalLines' : 'verticalLines']
+                        [randomMove.row][randomMove.col] = true;
+                    
+                    // Check if this move completed any boxes
+                    const completedBoxes = checkForCompletedBoxes(randomMove.type, randomMove.row, randomMove.col);
+                    if (completedBoxes.length > 0) {
+                        completedBoxes.forEach(([boxRow, boxCol]) => {
+                            gameState.boxes[boxRow][boxCol] = gameState.currentPlayer;
+                            gameState.scores[gameState.currentPlayer - 1]++;
+                        });
+                    } else {
+                        gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                    }
+                }
             }
             
             // Check if game is over
@@ -755,7 +862,8 @@
                 gameState.horizontalLines[row][col] &&
                 gameState.horizontalLines[row + 1][col] &&
                 gameState.verticalLines[row][col] &&
-                gameState.verticalLines[row][col + 1]
+                gameState.verticalLines[row][col + 1] &&
+                gameState.boxes[row][col] === 0
             );
         }
 
@@ -780,13 +888,34 @@
                 gameOverText.textContent = `Congratulations! You won ${player1Score} to ${player2Score}.`;
             } else if (player2Score > player1Score) {
                 gameOverTitle.innerHTML = '<i class="fas fa-crown"></i> Player 2 Wins!';
-                gameOverText.textContent = `Congratulations! You won ${player2Score} to ${player1Score}.`;
+                gameOverText.textContent = `Player 2 won ${player2Score} to ${player1Score}. Better luck next time!`;
             } else {
                 gameOverTitle.innerHTML = '<i class="fas fa-handshake"></i> It\'s a Tie!';
                 gameOverText.textContent = `Both players scored ${player1Score} points. Great game!`;
             }
             
             gameOverModal.classList.add('active');
+            createConfetti();
+        }
+
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffd166', '#06d6a0', '#118ab2'];
+            const modalContent = document.querySelector('.modal-content');
+            
+            for (let i = 0; i < 150; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                modalContent.appendChild(confetti);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
         }
 
         // Update game display
@@ -801,11 +930,11 @@
             
             // Update status
             if (gameState.gameOver) {
-                gameStatus.textContent = 'Game Over';
-            } else if (gameState.playerNumber === gameState.currentPlayer) {
-                gameStatus.textContent = 'Your turn - make a move';
+                gameStatus.textContent = 'Game Over!';
+            } else if (gameState.currentPlayer === gameState.playerNumber) {
+                gameStatus.textContent = 'Your turn - make a move!';
             } else {
-                gameStatus.textContent = 'Waiting for opponent...';
+                gameStatus.textContent = 'Player 2 is thinking...';
             }
             
             // Update board
@@ -872,29 +1001,31 @@
             gameOverModal.classList.remove('active');
             
             // Reset game state
-            gameState = {
-                horizontalLines: Array(gameConfig.gridSize).fill().map(() => Array(gameConfig.gridSize - 1).fill(false)),
-                verticalLines: Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize).fill(false)),
-                boxes: Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize - 1).fill(0)),
-                scores: [0, 0],
-                currentPlayer: 1,
-                gameOver: false,
-                gameId: gameState.gameId,
-                isHost: gameState.isHost,
-                playerNumber: gameState.playerNumber
-            };
+            gameState.horizontalLines = Array(gameConfig.gridSize).fill().map(() => Array(gameConfig.gridSize - 1).fill(false));
+            gameState.verticalLines = Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize).fill(false));
+            gameState.boxes = Array(gameConfig.gridSize - 1).fill().map(() => Array(gameConfig.gridSize - 1).fill(0));
+            gameState.scores = [0, 0];
+            gameState.currentPlayer = 1;
+            gameState.gameOver = false;
+            
+            // Generate new game ID
+            gameState.gameId = generateGameId();
+            gameIdDisplay.textContent = gameState.gameId;
+            inviteLink.textContent = `https://dots-and-boxes/game/${gameState.gameId}`;
             
             // Update display
             updateGameDisplay();
             createGameBoard();
         }
 
-        // Go back to main menu
-        function backToMenu() {
-            gameScreen.style.display = 'none';
-            menuScreen.style.display = 'block';
-            inviteSection.style.display = 'none';
-            gameOverModal.classList.remove('active');
+        // Generate a random game ID
+        function generateGameId() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let id = '';
+            for (let i = 0; i < 6; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
         }
 
         // Initialize the game when page loads
