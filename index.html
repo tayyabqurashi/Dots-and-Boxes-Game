@@ -3,51 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dots & Boxes - Real-Time Multiplayer</title>
+    <title>Dots & Boxes - Space Edition</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
-            overflow-x: hidden;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+        }
+
+        /* Space background with animated stars */
+        .space-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) linear infinite;
+            opacity: 0;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+        
+        @keyframes moveStars {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100vh); }
+        }
+        
+        .nebula {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(106, 17, 203, 0.3) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, rgba(37, 117, 252, 0.3) 0%, transparent 40%);
+            opacity: 0.3;
         }
 
         .game-container {
             width: 100%;
-            max-width: 900px;
-            background: rgba(255, 255, 255, 0.95);
+            max-width: 1200px;
+            background: rgba(10, 15, 30, 0.85);
             border-radius: 25px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 50px rgba(106, 17, 203, 0.3);
             overflow: hidden;
             position: relative;
-            border: 8px solid #ff6b6b;
-            animation: float 6s ease-in-out infinite;
+            border: 1px solid rgba(106, 17, 203, 0.5);
+            backdrop-filter: blur(10px);
+            animation: float 8s ease-in-out infinite;
+            z-index: 10;
         }
 
         @keyframes float {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-15px); }
             100% { transform: translateY(0px); }
         }
 
         .header {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, rgba(106, 17, 203, 0.8) 0%, rgba(37, 117, 252, 0.8) 100%);
             color: white;
             padding: 25px 30px;
             text-align: center;
             position: relative;
             z-index: 10;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
@@ -55,9 +98,13 @@
             font-weight: 800;
             margin-bottom: 10px;
             letter-spacing: 1px;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
             transform: translateY(0);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: linear-gradient(to right, #fff, #c2c2ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .header h1:hover {
@@ -69,6 +116,7 @@
             opacity: 0.9;
             max-width: 600px;
             margin: 0 auto;
+            color: #c2c2ff;
         }
 
         .header::after {
@@ -78,7 +126,7 @@
             left: 0;
             width: 100%;
             height: 20px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="rgba(255,255,255,0.95)"/></svg>');
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0,0 Q50,10 100,0 L100,10 L0,10 Z" fill="rgba(10,15,30,0.85)"/></svg>');
             background-size: 100% 100%;
         }
 
@@ -100,38 +148,69 @@
             padding: 20px;
             margin-bottom: 25px;
             border-radius: 20px;
-            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            background: rgba(26, 32, 58, 0.8);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             transform: scale(1);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(106, 17, 203, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #6a11cb, #2575fc, #43e97b, #38f9d7);
+            z-index: -1;
+            border-radius: 22px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .player-card.active::before {
+            opacity: 1;
         }
 
         .player-card.active {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             transform: scale(1.03);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 15px 40px rgba(106, 17, 203, 0.4);
             z-index: 2;
         }
 
         .player-card.player2 {
-            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
-        }
-
-        .player-card.player2.active {
-            background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+            background: rgba(32, 28, 58, 0.8);
         }
 
         .player-icon {
             width: 70px;
             height: 70px;
             border-radius: 50%;
-            background: white;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-right: 20px;
             font-size: 2rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 20px rgba(106, 17, 203, 0.5);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .player-card.active .player-icon {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(106, 17, 203, 0.8);
+            animation: pulseIcon 1.5s infinite;
+        }
+
+        @keyframes pulseIcon {
+            0% { box-shadow: 0 0 10px rgba(106, 17, 203, 0.6); }
+            50% { box-shadow: 0 0 25px rgba(106, 17, 203, 0.9); }
+            100% { box-shadow: 0 0 10px rgba(106, 17, 203, 0.6); }
         }
 
         .player-details {
@@ -141,25 +220,28 @@
         .player-name {
             font-weight: 700;
             font-size: 1.4rem;
-            color: #333;
+            color: #fff;
             margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
         }
 
         .player-score {
             font-size: 2rem;
             font-weight: 800;
-            color: #6a11cb;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(106, 17, 203, 0.8);
         }
 
         .game-status {
-            background: white;
+            background: rgba(26, 32, 58, 0.8);
             border-radius: 20px;
             padding: 25px;
             margin-top: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             text-align: center;
             transform: translateY(0);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(106, 17, 203, 0.3);
         }
 
         .game-status:hover {
@@ -169,7 +251,7 @@
         .status-text {
             font-size: 1.4rem;
             font-weight: 600;
-            color: #6a11cb;
+            color: #fff;
             margin-bottom: 15px;
         }
 
@@ -202,17 +284,31 @@
         }
 
         .game-board {
-            background: #f8f9fc;
+            background: rgba(15, 20, 40, 0.7);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             display: grid;
-            grid-template-columns: repeat(7, auto);
-            grid-template-rows: repeat(7, auto);
+            grid-template-columns: repeat(15, auto);
+            grid-template-rows: repeat(15, auto);
             gap: 0;
             justify-content: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
             transform: scale(1);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(106, 17, 203, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(106, 17, 203, 0.1) 0%, transparent 70%);
+            z-index: -1;
         }
 
         .game-board:hover {
@@ -220,32 +316,37 @@
         }
 
         .dot {
-            width: 15px;
-            height: 15px;
-            background: #ff6b6b;
+            width: 12px;
+            height: 12px;
+            background: #fff;
             border-radius: 50%;
             margin: 2px;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            animation: pulse 3s infinite;
+            z-index: 2;
         }
 
         .line {
-            background: #d1d8e6;
+            background: rgba(255, 255, 255, 0.2);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border-radius: 4px;
             margin: 2px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
         }
 
         .line:hover:not(.drawn) {
-            background: #a5b1d0;
+            background: rgba(106, 17, 203, 0.6);
             transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(106, 17, 203, 0.6);
         }
 
         .line.drawn {
             background: #6a11cb;
             cursor: default;
-            box-shadow: 0 0 10px rgba(106, 17, 203, 0.4);
+            box-shadow: 0 0 15px rgba(106, 17, 203, 0.8);
             animation: drawLine 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -255,40 +356,56 @@
         }
 
         .horizontal-line {
-            height: 8px;
-            width: 60px;
+            height: 6px;
+            width: 30px;
         }
 
         .vertical-line {
-            width: 8px;
-            height: 60px;
+            width: 6px;
+            height: 30px;
         }
 
         .box {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1rem;
             margin: 2px;
-            background: #f0f3f9;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+            background: rgba(20, 25, 50, 0.7);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(106, 17, 203, 0.1);
+            z-index: -1;
         }
 
         .box.player1 {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-            color: #d32f2f;
+            background: linear-gradient(135deg, rgba(106, 17, 203, 0.7) 0%, rgba(37, 117, 252, 0.7) 100%);
+            color: #fff;
             animation: claimBox 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 20px rgba(106, 17, 203, 0.5);
         }
 
         .box.player2 {
-            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-            color: #1976d2;
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.7) 0%, rgba(56, 249, 215, 0.7) 100%);
+            color: #fff;
             animation: claimBox 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 20px rgba(67, 233, 123, 0.5);
         }
 
         @keyframes claimBox {
@@ -316,13 +433,33 @@
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: none;
             font-size: 1.1rem;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
             transform: translateY(0);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), transparent);
+            z-index: -1;
+            transition: transform 0.4s ease;
+            transform: translateX(-100%);
         }
 
         .btn:hover {
             transform: translateY(-7px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn:hover::before {
+            transform: translateX(0);
         }
 
         .btn:active {
@@ -335,19 +472,20 @@
         }
 
         .btn-outline {
-            background: white;
-            border: 3px solid #6a11cb;
-            color: #6a11cb;
+            background: transparent;
+            border: 2px solid #6a11cb;
+            color: #fff;
         }
 
         .invite-section {
-            background: white;
+            background: rgba(26, 32, 58, 0.8);
             border-radius: 20px;
             padding: 25px;
             margin-top: 25px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             transform: scale(1);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(106, 17, 203, 0.3);
         }
 
         .invite-section:hover {
@@ -358,21 +496,22 @@
             font-size: 1.3rem;
             font-weight: 700;
             margin-bottom: 20px;
-            color: #6a11cb;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
         .invite-link {
-            background: #f8f9fc;
+            background: rgba(15, 20, 40, 0.7);
             padding: 15px;
             border-radius: 15px;
             font-family: monospace;
             word-break: break-all;
             margin-bottom: 20px;
-            border: 2px dashed #d1d8e6;
+            border: 2px dashed rgba(106, 17, 203, 0.5);
             font-size: 1.1rem;
+            color: #fff;
         }
 
         .modal {
@@ -381,7 +520,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -397,7 +536,7 @@
         }
 
         .modal-content {
-            background: white;
+            background: rgba(10, 15, 30, 0.95);
             border-radius: 30px;
             padding: 50px;
             text-align: center;
@@ -409,6 +548,7 @@
             box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(106, 17, 203, 0.5);
         }
 
         .modal.active .modal-content {
@@ -419,15 +559,15 @@
         .modal h2 {
             font-size: 3rem;
             margin-bottom: 25px;
-            color: #6a11cb;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            text-shadow: 0 0 15px rgba(106, 17, 203, 0.8);
         }
 
         .modal p {
             font-size: 1.5rem;
             margin-bottom: 40px;
             line-height: 1.6;
-            color: #333;
+            color: #c2c2ff;
         }
 
         .confetti {
@@ -450,7 +590,27 @@
             100% { transform: scale(1); }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
+            .game-board {
+                padding: 15px;
+            }
+            
+            .horizontal-line {
+                width: 25px;
+            }
+            
+            .vertical-line {
+                height: 25px;
+            }
+            
+            .box {
+                width: 25px;
+                height: 25px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 992px) {
             .header h1 {
                 font-size: 2.2rem;
             }
@@ -461,21 +621,21 @@
             }
             
             .game-board {
-                padding: 20px;
+                padding: 10px;
             }
             
             .horizontal-line {
-                width: 40px;
+                width: 20px;
             }
             
             .vertical-line {
-                height: 40px;
+                height: 20px;
             }
             
             .box {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
+                width: 20px;
+                height: 20px;
+                font-size: 0.8rem;
             }
             
             .player-card {
@@ -489,13 +649,40 @@
             }
         }
         
-        /* Floating animations */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-            100% { transform: translateY(0px); }
+        @media (max-width: 768px) {
+            .horizontal-line {
+                width: 15px;
+            }
+            
+            .vertical-line {
+                height: 15px;
+            }
+            
+            .box {
+                width: 15px;
+                height: 15px;
+                font-size: 0.7rem;
+            }
+            
+            .player-name {
+                font-size: 1.2rem;
+            }
+            
+            .player-score {
+                font-size: 1.8rem;
+            }
+            
+            .status-text {
+                font-size: 1.2rem;
+            }
+            
+            .btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+            }
         }
         
+        /* Floating animations */
         .floating {
             animation: float 6s ease-in-out infinite;
         }
@@ -527,48 +714,54 @@
         
         .menu-screen h2 {
             font-size: 2.5rem;
-            color: #6a11cb;
+            color: #fff;
             margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(106, 17, 203, 0.8);
         }
         
         .menu-screen p {
             font-size: 1.2rem;
-            color: #555;
+            color: #c2c2ff;
             margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
     </style>
 </head>
 <body>
+    <div class="space-background" id="spaceBackground"></div>
+    
     <div class="game-container floating">
         <div class="header floating-delay-1">
-            <h1><i class="fas fa-dice-d20"></i> Dots & Boxes</h1>
-            <p>Real-Time Multiplayer - Play with friends anywhere!</p>
+            <h1><i class="fas fa-stars"></i> Dots & Boxes - Space Edition</h1>
+            <p>Real-Time Multiplayer - Conquer the stars with friends!</p>
         </div>
         
         <div id="menuScreen" class="menu-screen">
-            <h2><i class="fas fa-gamepad"></i> Play with Friends</h2>
-            <p>Create a new game or join an existing one to challenge your friends</p>
+            <h2><i class="fas fa-gamepad"></i> Interstellar Challenge</h2>
+            <p>Create a new galaxy or join an existing one to challenge your friends</p>
             
             <div class="menu-buttons">
                 <button id="createGameBtn" class="btn btn-primary">
-                    <i class="fas fa-plus-circle"></i> Create New Game
+                    <i class="fas fa-plus-circle"></i> Create New Galaxy
                 </button>
                 <button id="joinGameBtn" class="btn btn-outline">
-                    <i class="fas fa-link"></i> Join Existing Game
+                    <i class="fas fa-link"></i> Join Existing Galaxy
                 </button>
             </div>
             
             <div id="inviteSection" class="invite-section" style="display: none;">
                 <div class="invite-title">
-                    <i class="fas fa-share-alt"></i> Share this game link
+                    <i class="fas fa-share-alt"></i> Share this galaxy link
                 </div>
-                <div id="inviteLink" class="invite-link">Generating link...</div>
+                <div id="inviteLink" class="invite-link">Generating starlink...</div>
                 <button id="copyBtn" class="btn btn-primary">
-                    <i class="fas fa-copy"></i> Copy Link
+                    <i class="fas fa-copy"></i> Copy Starlink
                 </button>
-                <div class="status" style="margin-top: 20px; padding: 15px; border-radius: 10px; background: #f8f9fc;">
+                <div class="status" style="margin-top: 20px; padding: 15px; border-radius: 10px; background: rgba(15, 20, 40, 0.7);">
                     <span class="connection-status connected"></span>
-                    <span id="waitingStatus">Waiting for player 2 to join...</span>
+                    <span id="waitingStatus">Waiting for co-pilot to join...</span>
                 </div>
             </div>
         </div>
@@ -580,17 +773,17 @@
                         <i class="fas fa-crown"></i>
                     </div>
                     <div class="player-details">
-                        <div class="player-name">Player 1 (You)</div>
+                        <div class="player-name">Captain (You)</div>
                         <div class="player-score" id="player1Score">0</div>
                     </div>
                 </div>
                 
                 <div class="player-card player2" id="player2Info">
                     <div class="player-icon">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user-astronaut"></i>
                     </div>
                     <div class="player-details">
-                        <div class="player-name">Player 2</div>
+                        <div class="player-name">Co-Pilot</div>
                         <div class="player-score" id="player2Score">0</div>
                     </div>
                 </div>
@@ -598,18 +791,18 @@
                 <div class="game-status floating-delay-3">
                     <div class="status-text">
                         <span class="connection-status connected"></span>
-                        <span id="gameStatus">Your turn - make a move!</span>
+                        <span id="gameStatus">Your turn - chart a course!</span>
                     </div>
-                    <div style="font-size: 1rem; color: #777; margin-top: 15px;">
-                        Game ID: <strong id="gameIdDisplay">ABC123</strong>
+                    <div style="font-size: 1rem; color: #c2c2ff; margin-top: 15px;">
+                        Galaxy ID: <strong id="gameIdDisplay">ABC123</strong>
                     </div>
                 </div>
                 
                 <div class="invite-section">
                     <div class="invite-title">
-                        <i class="fas fa-share-alt"></i> Share this game
+                        <i class="fas fa-share-alt"></i> Share this galaxy
                     </div>
-                    <div class="invite-link" id="watchLink">https://dots-and-boxes/game/ABC123</div>
+                    <div class="invite-link" id="watchLink">https://cosmic-dots/game/ABC123</div>
                     <button class="btn btn-primary" id="copyWatchLinkBtn">
                         <i class="fas fa-copy"></i> Copy Link
                     </button>
@@ -623,10 +816,10 @@
                 
                 <div class="controls">
                     <button class="btn btn-outline" id="menuBtn">
-                        <i class="fas fa-home"></i> Menu
+                        <i class="fas fa-home"></i> Starmap
                     </button>
                     <button class="btn btn-primary" id="newGameBtn">
-                        <i class="fas fa-redo"></i> New Game
+                        <i class="fas fa-redo"></i> New Galaxy
                     </button>
                 </div>
             </div>
@@ -635,10 +828,10 @@
 
     <div class="modal" id="gameOverModal">
         <div class="modal-content">
-            <h2 id="gameOverTitle"><i class="fas fa-trophy"></i> Victory!</h2>
-            <p id="gameOverText">Congratulations! You won the game!</p>
+            <h2 id="gameOverTitle"><i class="fas fa-trophy"></i> Cosmic Victory!</h2>
+            <p id="gameOverText">Congratulations! You've conquered the galaxy!</p>
             <button class="btn btn-primary" id="playAgainBtn">
-                <i class="fas fa-play"></i> Play Again
+                <i class="fas fa-play"></i> Explore Again
             </button>
         </div>
     </div>
@@ -646,11 +839,11 @@
     <script>
         // Game configuration
         const gameConfig = {
-            gridSize: 4,
+            gridSize: 8, // Changed to 8x8 grid
             players: ['Player 1', 'Player 2'],
             colors: {
-                player1: '#ff9a9e',
-                player2: '#a1c4fd'
+                player1: '#6a11cb',
+                player2: '#43e97b'
             }
         };
 
@@ -691,9 +884,43 @@
         const gameIdDisplay = document.getElementById('gameIdDisplay');
         const watchLink = document.getElementById('watchLink');
         const waitingStatus = document.getElementById('waitingStatus');
+        const spaceBackground = document.getElementById('spaceBackground');
+
+        // Create starfield background
+        function createStarfield() {
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 3 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                spaceBackground.appendChild(star);
+            }
+            
+            // Add moving stars
+            for (let i = 0; i < 50; i++) {
+                const movingStar = document.createElement('div');
+                movingStar.className = 'star';
+                movingStar.style.left = `${Math.random() * 100}%`;
+                movingStar.style.top = `${Math.random() * 100}%`;
+                movingStar.style.width = `${Math.random() * 2 + 1}px`;
+                movingStar.style.height = movingStar.style.width;
+                movingStar.style.animation = `moveStars ${Math.random() * 30 + 20}s linear infinite`;
+                movingStar.style.opacity = Math.random() * 0.7 + 0.3;
+                spaceBackground.appendChild(movingStar);
+            }
+            
+            // Add nebula effects
+            const nebula = document.createElement('div');
+            nebula.className = 'nebula';
+            spaceBackground.appendChild(nebula);
+        }
 
         // Initialize the game
         function init() {
+            createStarfield();
             createGameBtn.addEventListener('click', createGame);
             joinGameBtn.addEventListener('click', joinGamePrompt);
             copyBtn.addEventListener('click', copyInviteLink);
@@ -716,10 +943,10 @@
             watchLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
             
             // Simulate waiting for player 2
-            waitingStatus.textContent = "Waiting for player 2... (simulated)";
+            waitingStatus.textContent = "Scanning for co-pilot...";
             
             setTimeout(() => {
-                waitingStatus.innerHTML = '<span class="connection-status connected"></span> Player 2 connected! Starting game...';
+                waitingStatus.innerHTML = '<span class="connection-status connected"></span> Co-pilot connected! Launching game...';
                 
                 setTimeout(() => {
                     startGame();
@@ -729,7 +956,7 @@
 
         // Join a game
         function joinGamePrompt() {
-            const gameId = prompt('Enter game ID to join:');
+            const gameId = prompt('Enter galaxy ID to join:');
             if (gameId) {
                 gameState.gameId = gameId;
                 gameState.isHost = false;
@@ -737,12 +964,12 @@
                 
                 // Simulate connecting to game
                 inviteSection.style.display = 'block';
-                inviteLink.textContent = "Connecting to game...";
-                waitingStatus.textContent = "Connecting to host... (simulated)";
+                inviteLink.textContent = "Establishing starlink...";
+                waitingStatus.textContent = "Connecting to mothership...";
                 
                 setTimeout(() => {
                     inviteLink.textContent = `${window.location.origin}${window.location.pathname}?join=${gameState.gameId}`;
-                    waitingStatus.innerHTML = '<span class="connection-status connected"></span> Connected! Starting game...';
+                    waitingStatus.innerHTML = '<span class="connection-status connected"></span> Connected! Launching game...';
                     
                     setTimeout(() => {
                         startGame();
@@ -761,12 +988,13 @@
             updateGameDisplay();
         }
 
-        // Create the game board
+        // Create the game board for 8x8 grid
         function createGameBoard() {
             gameBoard.innerHTML = '';
             
-            for (let row = 0; row < 7; row++) {
-                for (let col = 0; col < 7; col++) {
+            // For 8x8 grid of dots, we need 15 rows and 15 columns (2*8-1 = 15)
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
                     if (row % 2 === 0 && col % 2 === 0) {
                         // Dot
                         const dot = document.createElement('div');
@@ -1005,14 +1233,14 @@
             const player2Score = gameState.scores[1];
             
             if (player1Score > player2Score) {
-                gameOverTitle.innerHTML = '<i class="fas fa-crown"></i> Player 1 Wins!';
-                gameOverText.textContent = `Congratulations! You won ${player1Score} to ${player2Score}.`;
+                gameOverTitle.innerHTML = '<i class="fas fa-crown"></i> Captain Wins!';
+                gameOverText.textContent = `Congratulations! You conquered ${player1Score} to ${player2Score} sectors.`;
             } else if (player2Score > player1Score) {
-                gameOverTitle.innerHTML = '<i class="fas fa-crown"></i> Player 2 Wins!';
-                gameOverText.textContent = `Player 2 won ${player2Score} to ${player1Score}. Better luck next time!`;
+                gameOverTitle.innerHTML = '<i class="fas fa-user-astronaut"></i> Co-Pilot Wins!';
+                gameOverText.textContent = `Co-Pilot claimed ${player2Score} to ${player1Score} sectors. Try again!`;
             } else {
-                gameOverTitle.innerHTML = '<i class="fas fa-handshake"></i> It\'s a Tie!';
-                gameOverText.textContent = `Both players scored ${player1Score} points. Great game!`;
+                gameOverTitle.innerHTML = '<i class="fas fa-handshake"></i> Cosmic Stalemate!';
+                gameOverText.textContent = `Both explorers claimed ${player1Score} sectors. Impressive!`;
             }
             
             gameOverModal.classList.add('active');
@@ -1021,7 +1249,7 @@
 
         // Create confetti effect
         function createConfetti() {
-            const colors = ['#ff6b6b', '#4ecdc4', '#ffd166', '#06d6a0', '#118ab2'];
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffd166', '#06d6a0', '#118ab2', '#6a11cb', '#43e97b'];
             const modalContent = document.querySelector('.modal-content');
             
             for (let i = 0; i < 150; i++) {
@@ -1051,11 +1279,11 @@
             
             // Update status
             if (gameState.gameOver) {
-                gameStatus.textContent = 'Game Over!';
+                gameStatus.textContent = 'Mission Complete!';
             } else if (gameState.currentPlayer === gameState.playerNumber) {
-                gameStatus.textContent = 'Your turn - make a move!';
+                gameStatus.textContent = 'Your turn - chart a course!';
             } else {
-                gameStatus.textContent = "Opponent's turn...";
+                gameStatus.textContent = "Co-pilot's turn...";
             }
             
             // Update board
@@ -1096,10 +1324,10 @@
                 
                 if (owner === 1) {
                     box.classList.add('player1');
-                    box.textContent = 'P1';
+                    box.textContent = 'C';
                 } else if (owner === 2) {
                     box.classList.add('player2');
-                    box.textContent = 'P2';
+                    box.textContent = 'P';
                 } else {
                     box.textContent = '';
                 }
@@ -1110,7 +1338,7 @@
         function copyInviteLink() {
             navigator.clipboard.writeText(inviteLink.textContent)
                 .then(() => {
-                    alert('Game link copied to clipboard!');
+                    alert('Starlink copied to clipboard!');
                 })
                 .catch(err => {
                     console.error('Failed to copy: ', err);
@@ -1121,7 +1349,7 @@
         function copyWatchLink() {
             navigator.clipboard.writeText(watchLink.textContent)
                 .then(() => {
-                    alert('Game link copied to clipboard!');
+                    alert('Galaxy link copied to clipboard!');
                 })
                 .catch(err => {
                     console.error('Failed to copy: ', err);
